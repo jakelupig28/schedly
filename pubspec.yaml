@@ -1,0 +1,46 @@
+name: schedly
+description: A student-friendly schedule parser, exporter, and widget application.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  provider: ^6.1.1
+
+  # Image loading and picking
+  image_picker: ^1.0.7
+
+  # Capturing widgets to PNG for Lockscreen download
+  screenshot: ^2.1.0
+
+  # Local persistence for schedule history and settings (Dark Mode)
+  shared_preferences: ^2.2.2
+
+  # Date and time formatting
+  intl: ^0.19.0
+
+  # Saving file to device storage
+  path_provider: ^2.1.1
+
+  # Document picking for PDF support
+  file_picker: ^6.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/onboarding_1.png
+    - assets/onboarding_2.png
+    - assets/onboarding_3.png
+    - assets/template.png

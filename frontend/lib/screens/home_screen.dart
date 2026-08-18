@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import 'schedule_parser_screen.dart';
 import 'schedule_exporter_screen.dart';
 import 'history_screen.dart';
+import 'onboarding_screen.dart';
 import '../widgets/mock_widget_preview.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -174,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Hello, Student!",
+                    "Hello, ${provider.studentFirstName}!",
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -191,18 +192,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ),
                 ],
               ),
-              Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
+              InkWell(
+                onTap: () => _showProfileDialog(context, provider),
+                borderRadius: BorderRadius.circular(24),
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center, // Strictly center the child icon
                   child: Icon(
-                    Icons.calendar_month_rounded,
+                    Icons.person_rounded, // Changed to profile icon
                     color: theme.colorScheme.primary,
-                    size: 24,
+                    size: 26,
                   ),
                 ),
               ),
@@ -612,6 +616,375 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       const SnackBar(
         content: Text("Please upload a Certificate of Registration (CoR) first!"),
         duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showProfileDialog(BuildContext context, ScheduleProvider provider) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return _ProfileEditDialog(provider: provider);
+      },
+    );
+  }
+}
+
+class _ProfileEditDialog extends StatefulWidget {
+  final ScheduleProvider provider;
+  const _ProfileEditDialog({required this.provider});
+
+  @override
+  State<_ProfileEditDialog> createState() => _ProfileEditDialogState();
+}
+
+class _ProfileEditDialogState extends State<_ProfileEditDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _firstNameController;
+  late TextEditingController _middleNameController;
+  late TextEditingController _surnameController;
+  late TextEditingController _birthdateController;
+  late TextEditingController _ageController;
+  late TextEditingController _emailController;
+  late TextEditingController _courseController;
+  late String _selectedYear;
+  DateTime? _selectedBirthdate;
+
+  final List<String> _years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year+'];
+
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController = TextEditingController(
+        text: widget.provider.studentFirstName == 'Student' ? '' : widget.provider.studentFirstName);
+    _middleNameController = TextEditingController(text: widget.provider.studentMiddleName);
+    _surnameController = TextEditingController(text: widget.provider.studentSurname);
+    _birthdateController = TextEditingController(text: widget.provider.studentBirthdate);
+    _ageController = TextEditingController(text: widget.provider.studentAge);
+    _emailController = TextEditingController(text: widget.provider.studentEmail);
+    _courseController = TextEditingController(text: widget.provider.activeCourse);
+    _selectedYear = widget.provider.activeYear;
+
+    if (widget.provider.studentBirthdate.isNotEmpty) {
+      try {
+        final parts = widget.provider.studentBirthdate.split('/');
+        if (parts.length == 3) {
+          _selectedBirthdate = DateTime(int.parse(parts[2]), int.parse(parts[0]), int.parse(parts[1]));
+        }
+      } catch (_) {}
+    }
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _middleNameController.dispose();
+    _surnameController.dispose();
+    _birthdateController.dispose();
+    _ageController.dispose();
+    _emailController.dispose();
+    _courseController.dispose();
+    super.dispose();
+  }
+
+  String _capitalize(String text) {
+    if (text.trim().isEmpty) return '';
+    return text.trim().split(RegExp(r'\s+')).map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+  }
+
+  Future<void> _selectBirthdate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedBirthdate ?? DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).brightness == Brightness.dark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF6C63FF),
+                    onPrimary: Colors.white,
+                    surface: Color(0xFF1F1C3F),
+                    onSurface: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFF6C63FF),
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Colors.black,
+                  ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedBirthdate = picked;
+        _birthdateController.text = "${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}/${picked.year}";
+        
+        // Calculate age
+        DateTime today = DateTime.now();
+        int age = today.year - picked.year;
+        if (today.month < picked.month || (today.month == picked.month && today.day < picked.day)) {
+          age--;
+        }
+        _ageController.text = age.toString();
+      });
+    }
+  }
+
+  void _saveProfile() {
+    if (_formKey.currentState!.validate()) {
+      final fName = _capitalize(_firstNameController.text);
+      final mName = _capitalize(_middleNameController.text);
+      final lName = _capitalize(_surnameController.text);
+
+      widget.provider.updateStudentProfile(
+        firstName: fName,
+        middleName: mName,
+        surname: lName,
+        birthdate: _birthdateController.text,
+        age: _ageController.text,
+        email: _emailController.text,
+        course: _courseController.text,
+        year: _selectedYear,
+      );
+
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Profile updated successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  void _logout() {
+    Navigator.of(context).pop();
+    widget.provider.clearStudentProfile();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Logged out successfully!"),
+      ),
+    );
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      (route) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Dialog(
+      backgroundColor: isDark ? const Color(0xFF1F1C3F) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Edit Profile",
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // First Name
+                TextFormField(
+                  controller: _firstNameController,
+                  textCapitalization: TextCapitalization.words,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: const InputDecoration(
+                    labelText: "First Name",
+                    prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty ? "First name is required" : null,
+                ),
+                const SizedBox(height: 12),
+
+                // Middle Name
+                TextFormField(
+                  controller: _middleNameController,
+                  textCapitalization: TextCapitalization.words,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: const InputDecoration(
+                    labelText: "Middle Name",
+                    prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Surname
+                TextFormField(
+                  controller: _surnameController,
+                  textCapitalization: TextCapitalization.words,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: const InputDecoration(
+                    labelText: "Surname",
+                    prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty ? "Surname is required" : null,
+                ),
+                const SizedBox(height: 12),
+
+                // Email
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: const InputDecoration(
+                    labelText: "Email Address",
+                    prefixIcon: Icon(Icons.email_outlined, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) return "Email is required";
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                      return "Enter a valid email address";
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Birthdate + Age Row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: TextFormField(
+                        controller: _birthdateController,
+                        readOnly: true,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                        decoration: const InputDecoration(
+                          labelText: "Birthdate",
+                          prefixIcon: Icon(Icons.cake_outlined, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
+                        onTap: _selectBirthdate,
+                        validator: (value) => value == null || value.isEmpty ? "Required" : null,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        controller: _ageController,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                        decoration: const InputDecoration(
+                          labelText: "Age",
+                          prefixIcon: Icon(Icons.calendar_today_outlined, size: 18),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) return "Required";
+                          final parsedAge = int.tryParse(value);
+                          if (parsedAge == null || parsedAge <= 0) return "Invalid";
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Course
+                TextFormField(
+                  controller: _courseController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: const InputDecoration(
+                    labelText: "Course / Major",
+                    prefixIcon: Icon(Icons.book_outlined, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty ? "Course is required" : null,
+                ),
+                const SizedBox(height: 12),
+
+                // Year Level Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedYear,
+                  dropdownColor: isDark ? const Color(0xFF1F1C3F) : Colors.white,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: const InputDecoration(
+                    labelText: "Year Level",
+                    prefixIcon: Icon(Icons.calendar_month_outlined, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                  items: _years.map((year) {
+                    return DropdownMenuItem(value: year, child: Text(year));
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedYear = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Save Profile Button
+                ElevatedButton(
+                  onPressed: _saveProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text("Save Changes", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 12),
+
+                // Logout Button
+                OutlinedButton.icon(
+                  onPressed: _logout,
+                  icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                  label: const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                    side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

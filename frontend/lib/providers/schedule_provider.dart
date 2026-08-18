@@ -11,6 +11,14 @@ class ScheduleProvider with ChangeNotifier {
   String _activeSection = '';
   List<ClassSession> _activeSessions = [];
 
+  // Student Profile Data
+  String _studentFirstName = '';
+  String _studentMiddleName = '';
+  String _studentSurname = '';
+  String _studentBirthdate = '';
+  String _studentAge = '';
+  String _studentEmail = '';
+
   // Theme mode
   ThemeMode _themeMode = ThemeMode.light;
 
@@ -29,8 +37,8 @@ class ScheduleProvider with ChangeNotifier {
 
   // Getters
   String get activeSchoolYear => _activeSchoolYear;
-  String get activeCourse => _activeCourse;
-  String get activeYear => _activeYear;
+  String get activeCourse => _activeCourse.isNotEmpty ? _activeCourse : 'BS Information Technology';
+  String get activeYear => _activeYear.isNotEmpty ? _activeYear : '1st Year';
   String get activeSection => _activeSection;
   List<ClassSession> get activeSessions => _activeSessions;
   ThemeMode get themeMode => _themeMode;
@@ -39,9 +47,70 @@ class ScheduleProvider with ChangeNotifier {
   int get exportBgColorStartIndex => _exportBgColorStartIndex;
   int get exportBgColorEndIndex => _exportBgColorEndIndex;
 
+  // Student Profile Getters
+  String get studentFirstName => _studentFirstName.isNotEmpty ? _studentFirstName : 'Student';
+  String get studentMiddleName => _studentMiddleName;
+  String get studentSurname => _studentSurname;
+  String get studentBirthdate => _studentBirthdate;
+  String get studentAge => _studentAge;
+  String get studentEmail => _studentEmail;
+
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
   // Setters
+  void updateStudentProfile({
+    required String firstName,
+    required String middleName,
+    required String surname,
+    required String birthdate,
+    required String age,
+    required String email,
+    required String course,
+    required String year,
+  }) async {
+    _studentFirstName = firstName;
+    _studentMiddleName = middleName;
+    _studentSurname = surname;
+    _studentBirthdate = birthdate;
+    _studentAge = age;
+    _studentEmail = email;
+    _activeCourse = course;
+    _activeYear = year;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('student_firstName', firstName);
+    await prefs.setString('student_middleName', middleName);
+    await prefs.setString('student_surname', surname);
+    await prefs.setString('student_birthdate', birthdate);
+    await prefs.setString('student_age', age);
+    await prefs.setString('student_email', email);
+    await prefs.setString('student_course', course);
+    await prefs.setString('student_year', year);
+  }
+
+  void clearStudentProfile() async {
+    _studentFirstName = '';
+    _studentMiddleName = '';
+    _studentSurname = '';
+    _studentBirthdate = '';
+    _studentAge = '';
+    _studentEmail = '';
+    _activeCourse = '';
+    _activeYear = '';
+    _activeSessions.clear();
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('student_firstName');
+    await prefs.remove('student_middleName');
+    await prefs.remove('student_surname');
+    await prefs.remove('student_birthdate');
+    await prefs.remove('student_age');
+    await prefs.remove('student_email');
+    await prefs.remove('student_course');
+    await prefs.remove('student_year');
+  }
   void updateActiveDetails({
     String? schoolYear,
     String? course,
@@ -152,6 +221,16 @@ class ScheduleProvider with ChangeNotifier {
     // Load Dark Mode
     final isDark = prefs.getBool('isDarkMode') ?? false;
     _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+
+    // Load Student Profile
+    _studentFirstName = prefs.getString('student_firstName') ?? '';
+    _studentMiddleName = prefs.getString('student_middleName') ?? '';
+    _studentSurname = prefs.getString('student_surname') ?? '';
+    _studentBirthdate = prefs.getString('student_birthdate') ?? '';
+    _studentAge = prefs.getString('student_age') ?? '';
+    _studentEmail = prefs.getString('student_email') ?? '';
+    _activeCourse = prefs.getString('student_course') ?? _activeCourse;
+    _activeYear = prefs.getString('student_year') ?? _activeYear;
 
     // Load History
     final historyJson = prefs.getString('schedule_history');

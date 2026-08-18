@@ -424,8 +424,8 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
       containerBgColor = const Color(0xFF324631).withOpacity(0.6);
       cellBorder = Border.all(color: const Color(0xFFA5B29B).withOpacity(0.2), width: 1.0);
     } else if (style == 'Sticker Template') {
-      textColor = const Color(0xFF453832);
-      subTextColor = const Color(0xFF453832);
+      textColor = const Color(0xFF5C4033);
+      subTextColor = const Color(0xFF5C4033);
       containerBgColor = Colors.transparent;
       backgroundDecoration = const BoxDecoration();
     } else {
@@ -482,123 +482,137 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                       fit: BoxFit.fill,
                     ),
                   ),
-                // Top Student Info
-                Positioned(
-                  left: constraints.maxWidth * 0.155,
-                  width: constraints.maxWidth * 0.64,
-                  top: constraints.maxHeight * 0.388,
-                  child: _buildTransTopInfo(provider, constraints),
-                ),
+                // Positioned.fill wrapping the unified tilted Stack
+                Positioned.fill(
+                  child: Transform.rotate(
+                    angle: -2.3859 * 3.1415926535 / 180,
+                    alignment: Alignment.center,
+                    child: Stack(
+                      children: [
+                        // Top Student Info
+                        Positioned(
+                          left: constraints.maxWidth * 0.155,
+                          width: constraints.maxWidth * 0.59,
+                          top: constraints.maxHeight * 0.388,
+                          child: _buildTransTopInfo(provider, constraints),
+                        ),
 
-                // Schedule list
-                Positioned(
-                  left: constraints.maxWidth * 0.155,
-                  width: constraints.maxWidth * 0.64,
-                  top: constraints.maxHeight * 0.515,
-                  height: constraints.maxHeight * 0.325,
-                  child: Container(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: flattenedSessions.length,
-                      itemBuilder: (context, idx) {
-                        const daysMap = {
-                          'Monday': 'MON',
-                          'Tuesday': 'TUE',
-                          'Wednesday': 'WED',
-                          'Thursday': 'THU',
-                          'Friday': 'FRI',
-                          'Saturday': 'SAT',
-                          'Sunday': 'SUN'
-                        };
-                        final entry = flattenedSessions[idx];
-                        final dayName = entry.key;
-                        final session = entry.value;
-                        final shortDay = daysMap[dayName] ?? dayName.substring(0, 3).toUpperCase();
-                        
-                        final startStr = session.startTime.split(' ')[0];
-                        final endStr = session.endTime.split(' ')[0];
-                        final period = session.startTime.split(' ').length > 1 ? session.startTime.split(' ')[1].toLowerCase() : '';
-                        final timeStr = "$startStr - $endStr $period";
+                        // Schedule list
+                        Positioned(
+                          left: constraints.maxWidth * 0.155,
+                          width: constraints.maxWidth * 0.59,
+                          top: constraints.maxHeight * 0.515,
+                          height: constraints.maxHeight * 0.325,
+                          child: Container(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: flattenedSessions.length,
+                              itemBuilder: (context, idx) {
+                                const daysMap = {
+                                  'Monday': 'MON',
+                                  'Tuesday': 'TUE',
+                                  'Wednesday': 'WED',
+                                  'Thursday': 'THU',
+                                  'Friday': 'FRI',
+                                  'Saturday': 'SAT',
+                                  'Sunday': 'SUN'
+                                };
+                                final entry = flattenedSessions[idx];
+                                final dayName = entry.key;
+                                final session = entry.value;
+                                final shortDay = daysMap[dayName] ?? dayName.substring(0, 3).toUpperCase();
+                                
+                                final startStr = session.startTime.split(' ')[0];
+                                final endStr = session.endTime.split(' ')[0];
+                                final period = session.startTime.split(' ').length > 1 ? session.startTime.split(' ')[1].toLowerCase() : '';
+                                final timeStr = "$startStr - $endStr $period";
 
-                        return Container(
-                          height: constraints.maxHeight * 0.027, // 17.3px / 640px = 2.7%
-                          alignment: Alignment.center,
-                          child: Row(
-                            children: [
-                              // Column 1: Day (12%)
-                              SizedBox(
-                                width: constraints.maxWidth * 0.64 * 0.12,
-                                child: Text(
-                                  shortDay,
-                                  style: TextStyle(
-                                    fontFamily: 'Courier',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: constraints.maxHeight * 0.010, // 6.4px / 640px = 1.0%
-                                    color: const Color(0xFF453832),
+                                return Container(
+                                  height: constraints.maxHeight * 0.031, // Increased row height to fit larger font
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    children: [
+                                      // Column 1: Day (12%)
+                                      SizedBox(
+                                        width: constraints.maxWidth * 0.59 * 0.12,
+                                        child: Text(
+                                          shortDay,
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
+                                            color: const Color(0xFF453832),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      // Column 2: Subject (50%)
+                                      SizedBox(
+                                        width: constraints.maxWidth * 0.59 * 0.50,
+                                        child: Text(
+                                          session.subjectName,
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
+                                            color: const Color(0xFF453832),
+                                          ),
+                                          textAlign: TextAlign.left,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      // Column 3: Dash (6%)
+                                      SizedBox(
+                                        width: constraints.maxWidth * 0.59 * 0.06,
+                                        child: Text(
+                                          '-',
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
+                                            color: const Color(0xFF453832),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      // Column 4: Time (32%)
+                                      Transform.translate(
+                                        offset: const Offset(-8.0, 0), // Shift left (inside) to align with asterisks end
+                                        child: SizedBox(
+                                          width: constraints.maxWidth * 0.59 * 0.32,
+                                          child: Text(
+                                            timeStr,
+                                            style: TextStyle(
+                                              fontFamily: 'monospace',
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
+                                              color: const Color(0xFF453832),
+                                            ),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                              // Column 2: Subject (50%)
-                              SizedBox(
-                                width: constraints.maxWidth * 0.64 * 0.50,
-                                child: Text(
-                                  session.subjectName,
-                                  style: TextStyle(
-                                    fontFamily: 'Courier',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: constraints.maxHeight * 0.010,
-                                    color: const Color(0xFF453832),
-                                  ),
-                                  textAlign: TextAlign.left,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              // Column 3: Dash (6%)
-                              SizedBox(
-                                width: constraints.maxWidth * 0.64 * 0.06,
-                                child: Text(
-                                  '-',
-                                  style: TextStyle(
-                                    fontFamily: 'Courier',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: constraints.maxHeight * 0.010,
-                                    color: const Color(0xFF453832),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                              // Column 4: Time (32%)
-                              SizedBox(
-                                width: constraints.maxWidth * 0.64 * 0.32,
-                                child: Text(
-                                  timeStr,
-                                  style: TextStyle(
-                                    fontFamily: 'Courier',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: constraints.maxHeight * 0.010,
-                                    color: const Color(0xFF453832),
-                                  ),
-                                  textAlign: TextAlign.right,
-                                ),
-                              ),
-                            ],
+                                );
+                              },
+                            ),
                           ),
-                        );
-                      },
+                        ),
+
+                        // Bottom Student Info
+                        Positioned(
+                          left: constraints.maxWidth * 0.155,
+                          width: constraints.maxWidth * 0.59,
+                          top: constraints.maxHeight * 0.846, // Shifted slightly up to avoid bottom overlap
+                          child: _buildTransBottomInfo(provider, constraints),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-
-                // Bottom Student Info
-                Positioned(
-                  left: constraints.maxWidth * 0.155,
-                  width: constraints.maxWidth * 0.64,
-                  top: constraints.maxHeight * 0.848,
-                  child: _buildTransBottomInfo(provider, constraints),
                 ),
               ],
             ),
@@ -608,30 +622,42 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
     }
 
     // Default layout for other themes
+    final totalClassesCount = sessions.length;
+    final isDense = totalClassesCount > 7;
+    final double dayMargin = isDense ? 4.0 : 10.0;
+    final double dayPadding = isDense ? 6.0 : 10.0;
+    final double dayHeaderGap = isDense ? 2.0 : 6.0;
+    final double sessionPadding = isDense ? 3.0 : 6.0;
+    
+    final double dayNameFontSize = isDense ? 9.5 : 11.0;
+    final double timeFontSize = isDense ? 8.0 : 9.0;
+    final double subjectFontSize = isDense ? 9.5 : 11.0;
+    final double subInfoFontSize = isDense ? 8.0 : 9.0;
+
     return Container(
       decoration: backgroundDecoration,
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(isDense ? 10.0 : 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 12),
+          SizedBox(height: isDense ? 4 : 12),
           Text(
             provider.activeSchoolYear,
-            style: _getFontStyle(_selectedFontStyle, fontSize: 10, fontWeight: FontWeight.bold, color: subTextColor),
+            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 8 : 10, fontWeight: FontWeight.bold, color: subTextColor),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 2),
           Text(
             "WEEKLY SCHEDULE",
-            style: _getFontStyle(_selectedFontStyle, fontSize: 16, fontWeight: FontWeight.w900, color: textColor),
+            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 13 : 16, fontWeight: FontWeight.w900, color: textColor),
             textAlign: TextAlign.center,
           ),
           Text(
             "${provider.activeCourse} | ${provider.activeYear} - ${provider.activeSection}",
-            style: _getFontStyle(_selectedFontStyle, fontSize: 10, fontWeight: FontWeight.normal, color: subTextColor),
+            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 8 : 10, fontWeight: FontWeight.normal, color: subTextColor),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isDense ? 8 : 16),
           
           Expanded(
             child: activeDays.isEmpty
@@ -650,8 +676,8 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                       final daySessions = sessions.where((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase()).toList();
 
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(10),
+                        margin: EdgeInsets.only(bottom: dayMargin),
+                        padding: EdgeInsets.all(dayPadding),
                         decoration: BoxDecoration(
                           color: containerBgColor,
                           borderRadius: BorderRadius.circular(cellBorderRadius),
@@ -664,7 +690,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                               dayName.toUpperCase(),
                               style: _getFontStyle(
                                 _selectedFontStyle,
-                                fontSize: 11,
+                                fontSize: dayNameFontSize,
                                 fontWeight: FontWeight.w900,
                                 color: style == 'Cyberpunk Neon'
                                     ? const Color(0xFFFF007F)
@@ -673,10 +699,10 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                         : textColor,
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            SizedBox(height: dayHeaderGap),
                             ...daySessions.map((session) {
                               return Padding(
-                                padding: const EdgeInsets.only(bottom: 6.0),
+                                padding: EdgeInsets.only(bottom: sessionPadding),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
@@ -685,12 +711,12 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                       "${session.startTime.split(' ')[0]} - ${session.endTime}",
                                       style: _getFontStyle(
                                         _selectedFontStyle,
-                                        fontSize: 9,
+                                        fontSize: timeFontSize,
                                         fontWeight: FontWeight.bold,
                                         color: subTextColor,
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    SizedBox(width: isDense ? 8 : 12),
                                     // Subject Details
                                     Expanded(
                                       child: Column(
@@ -700,7 +726,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                             session.subjectName,
                                             style: _getFontStyle(
                                               _selectedFontStyle,
-                                              fontSize: 11,
+                                              fontSize: subjectFontSize,
                                               fontWeight: FontWeight.bold,
                                               color: textColor,
                                             ),
@@ -711,7 +737,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                             "${session.subjectCode} • Room ${session.room}",
                                             style: _getFontStyle(
                                               _selectedFontStyle,
-                                              fontSize: 9,
+                                              fontSize: subInfoFontSize,
                                               fontWeight: FontWeight.normal,
                                               color: subTextColor,
                                             ),
@@ -743,46 +769,42 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
   }
 
   Widget _buildTransTopInfo(ScheduleProvider provider, BoxConstraints constraints) {
-    return Transform.rotate(
-      angle: -2.3859 * 3.1415926535 / 180,
-      alignment: Alignment.center,
-      child: Container(
-        padding: const EdgeInsets.only(left: 2),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              provider.activeYear.isNotEmpty ? provider.activeYear : '3rd Year',
-              style: TextStyle(
-                fontFamily: 'Courier',
-                fontWeight: FontWeight.bold,
-                fontSize: constraints.maxHeight * 0.010,
-                color: const Color(0xFF453832),
-              ),
+    return Container(
+      padding: const EdgeInsets.only(left: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            provider.activeYear.isNotEmpty ? provider.activeYear : '3rd Year',
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.w900,
+              fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
+              color: const Color(0xFF5C4033),
             ),
-            SizedBox(height: constraints.maxHeight * 0.0015),
-            Text(
-              provider.activeSchoolYear.isNotEmpty ? provider.activeSchoolYear : 'S.Y. 2026-2027',
-              style: TextStyle(
-                fontFamily: 'Courier',
-                fontWeight: FontWeight.bold,
-                fontSize: constraints.maxHeight * 0.010,
-                color: const Color(0xFF453832),
-              ),
+          ),
+          SizedBox(height: constraints.maxHeight * 0.0015),
+          Text(
+            provider.activeSchoolYear.isNotEmpty ? provider.activeSchoolYear : 'S.Y. 2026-2027',
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.w900,
+              fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
+              color: const Color(0xFF5C4033),
             ),
-            SizedBox(height: constraints.maxHeight * 0.0015),
-            const Text(
-              'EARIST',
-              style: TextStyle(
-                fontFamily: 'Courier',
-                fontWeight: FontWeight.bold,
-                fontSize: constraints.maxHeight * 0.010,
-                color: Color(0xFF453832),
-              ),
+          ),
+          SizedBox(height: constraints.maxHeight * 0.0015),
+          const Text(
+            'EARIST',
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.w900,
+              fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
+              color: Color(0xFF5C4033),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -790,76 +812,96 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
   Widget _buildTransBottomInfo(ScheduleProvider provider, BoxConstraints constraints) {
     final totalClasses = provider.activeSessions.length;
     final calculatedUnits = (totalClasses * 1.8).round();
-    final fontSize = constraints.maxHeight * 0.010;
+    final fontSize = constraints.maxHeight * 0.0125; // Increased font size
     
-    return Transform.rotate(
-      angle: -2.3859 * 3.1415926535 / 180,
-      alignment: Alignment.center,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Item Count',
-                  style: TextStyle(
-                    fontFamily: 'Courier',
-                    fontWeight: FontWeight.bold,
-                    fontSize: fontSize,
-                    color: const Color(0xFF453832),
-                  ),
+    final courseName = provider.activeCourse.isNotEmpty ? provider.activeCourse : "BS Information Technology";
+    
+    return Container(
+      width: double.infinity, // Force full width to align values to the right edge of asterisks
+      padding: const EdgeInsets.only(left: 2, right: 0), // Removed right padding to allow full horizontal stretch
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch, // Stretch children horizontally
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Item Count',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w900,
+                  fontSize: fontSize,
+                  color: const Color(0xFF5C4033),
                 ),
-                Text(
+              ),
+              Transform.translate(
+                offset: const Offset(-8.0, 0), // Shift left (inside) to align with asterisks end
+                child: Text(
                   totalClasses.toString(),
                   style: TextStyle(
-                    fontFamily: 'Courier',
-                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w900,
                     fontSize: fontSize,
-                    color: const Color(0xFF453832),
+                    color: const Color(0xFF5C4033),
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: constraints.maxHeight * 0.0015),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total',
-                  style: TextStyle(
-                    fontFamily: 'Courier',
-                    fontWeight: FontWeight.bold,
-                    fontSize: fontSize,
-                    color: const Color(0xFF453832),
-                  ),
+              ),
+            ],
+          ),
+          SizedBox(height: constraints.maxHeight * 0.0015),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w900,
+                  fontSize: fontSize,
+                  color: const Color(0xFF5C4033),
                 ),
-                Text(
+              ),
+              Transform.translate(
+                offset: const Offset(-8.0, 0), // Shift left (inside) to align with asterisks end
+                child: Text(
                   '$calculatedUnits units',
                   style: TextStyle(
-                    fontFamily: 'Courier',
-                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w900,
                     fontSize: fontSize,
-                    color: const Color(0xFF453832),
+                    color: const Color(0xFF5C4033),
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: constraints.maxHeight * 0.003),
-            Text(
-              'Course: ${provider.activeCourse.isNotEmpty ? provider.activeCourse : "BS Information Technology"}',
-              style: TextStyle(
-                fontFamily: 'Courier',
-                fontWeight: FontWeight.bold,
-                fontSize: fontSize,
-                color: const Color(0xFF453832),
+              ),
+            ],
+          ),
+          SizedBox(height: constraints.maxHeight * 0.012), // Spaced a bit down
+          Transform.translate(
+            offset: const Offset(26.0, 0), // Shift right to align with the first asterisk
+            child: Transform.rotate(
+              angle: -0.3 * 3.1415926535 / 180, // Rotate by a further reduced extra -0.3 degrees (total -2.7 degrees)
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: constraints.maxWidth * 0.59 - 52.0, // Revert width to fit exactly within the asterisks line boundaries
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Course: $courseName',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.w900,
+                      fontSize: fontSize * 1.04, // Slightly reduced font size factor
+                      color: const Color(0xFF5C4033),
+                    ),
+                    maxLines: 1,
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -871,9 +913,36 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
     });
 
     try {
-      // Capture screenshot as Uint8List
-      final Uint8List? imageBytes = await _screenshotController.capture(
+      final provider = Provider.of<ScheduleProvider>(context, listen: false);
+      final sessions = provider.activeSessions;
+
+      final posterWidget = MultiProvider(
+        providers: [
+          ChangeNotifierProvider<ScheduleProvider>.value(value: provider),
+        ],
+        child: Theme(
+          data: theme,
+          child: Material(
+            color: Colors.transparent,
+            child: SizedBox(
+              width: 360, // High-quality base width for PNG generation
+              child: AspectRatio(
+                aspectRatio: _sizeOptions[_selectedSizeKey]!,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: _buildSchedulePoster(provider, sessions),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Capture screenshot off-screen to avoid viewport clipping from scroll views
+      final Uint8List? imageBytes = await _screenshotController.captureFromWidget(
+        posterWidget,
         delay: const Duration(milliseconds: 300),
+        context: context,
       );
 
       if (imageBytes != null) {

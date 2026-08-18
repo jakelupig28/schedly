@@ -90,10 +90,12 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
                       Row(
                         children: [
                           _buildBgStyleTab('Glassmorphism', theme),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           _buildBgStyleTab('Solid Light', theme),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           _buildBgStyleTab('Midnight Neon', theme),
+                          const SizedBox(width: 6),
+                          _buildBgStyleTab('Sunset Gradient', theme),
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -132,14 +134,18 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
 
   Widget _buildPhoneHomescreen(ThemeData theme, String todayName, List<ClassSession> sessions) {
     return Container(
-      height: 220,
+      height: 200,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
         // Phone wallpaper style background
         gradient: const LinearGradient(
-          colors: [Color(0xFF3A6073), Color(0xFF3A7BD5)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF4158D0),
+            Color(0xFFC850C0),
+            Color(0xFFFFCC70),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
@@ -149,54 +155,9 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
           )
         ],
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Simulated Status Bar
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "9:41",
-                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-              ),
-              Row(
-                children: [
-                  Icon(Icons.wifi, color: Colors.white, size: 10),
-                  SizedBox(width: 4),
-                  Icon(Icons.battery_5_bar, color: Colors.white, size: 10),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Floating Custom Schedule Widget
-          Expanded(
-            child: Center(
-              child: _buildFloatingWidget(theme, todayName, sessions),
-            ),
-          ),
-
-          // Simulated App Icons Row
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(4, (index) {
-              final icons = [Icons.message, Icons.phone, Icons.camera_alt, Icons.web];
-              return Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icons[index], color: Colors.white, size: 12),
-              );
-            }),
-          )
-        ],
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: _buildFloatingWidget(theme, todayName, sessions),
       ),
     );
   }
@@ -223,6 +184,28 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
       );
       titleColor = const Color(0xFFFF6584);
       bodyColor = Colors.white;
+    } else if (_widgetBg == 'Sunset Gradient') {
+      decoration = BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF8A2387),
+            Color(0xFFE94057),
+            Color(0xFFF27121),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          )
+        ],
+      );
+      titleColor = Colors.white;
+      bodyColor = Colors.white.withOpacity(0.9);
     } else {
       // Glassmorphism
       decoration = BoxDecoration(

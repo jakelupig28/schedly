@@ -10,6 +10,10 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Fredoka:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@400;600;700&family=Pacifico&family=Quicksand:wght@500;700&display=swap"
         rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
         :root {
             --primary: #6c63ff;
@@ -317,6 +321,13 @@
             padding-top: 48px;
         }
 
+        #screen-onboarding,
+        #screen-login,
+        #screen-register,
+        #screen-profile {
+            padding-bottom: 24px;
+        }
+
         .screen.active {
             display: flex;
         }
@@ -567,6 +578,35 @@
             height: 20px;
             color: #9ca3af;
             pointer-events: none;
+        }
+
+        .auth-input-group .custom-select-wrapper {
+            margin-bottom: 0px;
+        }
+
+        .auth-input-group .custom-select-trigger {
+            background-color: #f3f4f6;
+            border: none;
+            border-radius: 16px;
+            height: 50px;
+            padding: 0 18px;
+            font-size: 14px;
+            color: #111827;
+            font-weight: 500;
+        }
+
+        .auth-input-group .custom-select-trigger::after {
+            right: 18px;
+        }
+
+        [data-theme="dark"] .auth-input-group .custom-select-trigger {
+            background-color: #23223f;
+            color: #ffffff;
+        }
+
+        .custom-select-trigger.placeholder-style {
+            color: #9ca3af !important;
+            font-weight: 400 !important;
         }
 
         .auth-input-wrapper input.form-control {
@@ -1123,22 +1163,18 @@
 
         /* Widget Simulator */
         .widget-screen-preview {
-            background: linear-gradient(180deg, #3a6073, #3a7bd5);
+            background: linear-gradient(135deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%);
             height: 180px;
             border-radius: 20px;
-            padding: 12px;
+            padding: 16px;
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            align-items: center;
+            justify-content: center;
             margin-bottom: 20px;
             color: white;
             font-size: 8px;
-        }
-
-        .widget-bar {
-            display: flex;
-            justify-content: space-between;
-            font-weight: 600;
+            box-sizing: border-box;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
         }
 
         .widget-sim {
@@ -1185,19 +1221,6 @@
             font-size: 8px;
             font-weight: bold;
             margin-bottom: 2px;
-        }
-
-        .widget-icons {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 10px;
-        }
-
-        .widget-icon-app {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.3);
         }
 
         .instruction-box {
@@ -1602,9 +1625,64 @@
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                 <circle cx="12" cy="7" r="4"></circle>
                             </svg>
-                            <input type="text" class="form-control" placeholder="Full Name" id="reg-name"
+                            <input type="text" class="form-control" placeholder="First Name" id="reg-first-name" onblur="this.value = capitalizeInput(this.value)"
                                 style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px;">
                         </div>
+                    </div>
+
+                    <div class="auth-input-group">
+                        <div class="auth-input-wrapper" style="position: relative; width: 100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <input type="text" class="form-control" placeholder="Middle Name (Optional)" id="reg-middle-name" onblur="this.value = capitalizeInput(this.value)"
+                                style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px;">
+                        </div>
+                    </div>
+
+                    <div class="auth-input-group">
+                        <div class="auth-input-wrapper" style="position: relative; width: 100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <input type="text" class="form-control" placeholder="Surname" id="reg-surname" onblur="this.value = capitalizeInput(this.value)"
+                                style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px;">
+                        </div>
+                    </div>
+
+                    <div class="auth-input-group" style="display: flex; gap: 12px; width: 100%; margin-bottom: 16px;">
+                        <div class="auth-input-wrapper" style="position: relative; flex: 3;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <input type="date" class="form-control" id="reg-birthdate" onchange="calculateAgeFromBirthdate(this.value)"
+                                style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px; box-sizing: border-box; font-family: inherit; font-size: 14px; color: #9ca3af;">
+                        </div>
+                        <div class="auth-input-wrapper" style="position: relative; flex: 2;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            <input type="number" class="form-control" placeholder="Age" id="reg-age" min="1"
+                                style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px; box-sizing: border-box; font-family: inherit; font-size: 14px; color: #111827;">
+                        </div>
+                    </div>
+
+                    <!-- Gender Dropdown -->
+                    <div class="auth-input-group">
+                        <select class="form-control" id="reg-gender">
+                            <option value="" disabled selected>Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                            <option value="Prefer not to say">Prefer not to say</option>
+                        </select>
                     </div>
 
                     <div class="auth-input-group">
@@ -1618,14 +1696,118 @@
                         </div>
                     </div>
 
+                    <!-- Course Dropdown -->
                     <div class="auth-input-group">
-                        <div class="auth-input-wrapper" style="position: relative; width: 100%;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                            </svg>
-                            <input type="text" class="form-control" placeholder="Course / Major" id="reg-course"
-                                style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px;">
+                        <select class="form-control" id="reg-course">
+                            <option value="" disabled selected>Select Course / Major</option>
+                            <option value="BS Information Technology">BS Information Technology (BSIT)</option>
+                            <option value="BS Computer Science">BS Computer Science (BSCS)</option>
+                            <option value="BS Computer Engineering">BS Computer Engineering (BSCpE)</option>
+                            <option value="BS Information Systems">BS Information Systems (BSIS)</option>
+                            <option value="BS Entertainment and Multimedia Computing">BS Entertainment and Multimedia Computing (BSEMC)</option>
+                            <option value="BS Library and Information Science">BS Library and Information Science (BLIS)</option>
+                            <option value="BS Business Administration - Marketing Management">BS Business Administration - Marketing Management (BSBA-MM)</option>
+                            <option value="BS Business Administration - Financial Management">BS Business Administration - Financial Management (BSBA-FM)</option>
+                            <option value="BS Business Administration - Human Resource Management">BS Business Administration - Human Resource Management (BSBA-HRM)</option>
+                            <option value="BS Business Administration - Operations Management">BS Business Administration - Operations Management (BSBA-OM)</option>
+                            <option value="BS Business Administration - Business Economics">BS Business Administration - Business Economics (BSBA-BE)</option>
+                            <option value="BS Accountancy">BS Accountancy (BSA)</option>
+                            <option value="BS Management Accounting">BS Management Accounting (BSMA)</option>
+                            <option value="BS Internal Auditing">BS Internal Auditing (BSIA)</option>
+                            <option value="BS Entrepreneurship">BS Entrepreneurship (BS Entrep)</option>
+                            <option value="BS Real Estate Management">BS Real Estate Management (BS REM)</option>
+                            <option value="BS Customs Administration">BS Customs Administration (BSCA)</option>
+                            <option value="BS Office Administration">BS Office Administration (BSOA)</option>
+                            <option value="BS Tourism Management">BS Tourism Management (BSTM)</option>
+                            <option value="BS Hospitality Management">BS Hospitality Management (BSHM)</option>
+                            <option value="BS Civil Engineering">BS Civil Engineering (BSCE)</option>
+                            <option value="BS Electrical Engineering">BS Electrical Engineering (BSEE)</option>
+                            <option value="BS Mechanical Engineering">BS Mechanical Engineering (BSME)</option>
+                            <option value="BS Electronics Engineering">BS Electronics Engineering (BSECE)</option>
+                            <option value="BS Chemical Engineering">BS Chemical Engineering (BSChE)</option>
+                            <option value="BS Industrial Engineering">BS Industrial Engineering (BSIE)</option>
+                            <option value="BS Sanitary Engineering">BS Sanitary Engineering (BSSE)</option>
+                            <option value="BS Geodetic Engineering">BS Geodetic Engineering (BSGE)</option>
+                            <option value="BS Mining Engineering">BS Mining Engineering (BSMinE)</option>
+                            <option value="BS Metallurgical Engineering">BS Metallurgical Engineering (BSMetE)</option>
+                            <option value="BS Aeronautical Engineering">BS Aeronautical Engineering (BSAeE)</option>
+                            <option value="BS Agricultural and Biosystems Engineering">BS Agricultural and Biosystems Engineering (BSABE)</option>
+                            <option value="BS Nursing">BS Nursing (BSN)</option>
+                            <option value="BS Medical Technology">BS Medical Technology (BSMT)</option>
+                            <option value="BS Pharmacy">BS Pharmacy (BSPharm)</option>
+                            <option value="BS Physical Therapy">BS Physical Therapy (BSPT)</option>
+                            <option value="BS Occupational Therapy">BS Occupational Therapy (BSOT)</option>
+                            <option value="BS Radiologic Technology">BS Radiologic Technology (BSRT)</option>
+                            <option value="BS Nutrition and Dietetics">BS Nutrition and Dietetics (BSND)</option>
+                            <option value="BS Midwifery">BS Midwifery (BSMid)</option>
+                            <option value="Doctor of Dental Medicine">Doctor of Dental Medicine (DMD)</option>
+                            <option value="Doctor of Optometry">Doctor of Optometry (OD)</option>
+                            <option value="Doctor of Veterinary Medicine">Doctor of Veterinary Medicine (DVM)</option>
+                            <option value="Bachelor of Elementary Education">Bachelor of Elementary Education (BEEd)</option>
+                            <option value="Bachelor of Secondary Education - English">Bachelor of Secondary Education - English (BSEd-Eng)</option>
+                            <option value="Bachelor of Secondary Education - Mathematics">Bachelor of Secondary Education - Mathematics (BSEd-Math)</option>
+                            <option value="Bachelor of Secondary Education - Science">Bachelor of Secondary Education - Science (BSEd-Sci)</option>
+                            <option value="Bachelor of Secondary Education - Social Studies">Bachelor of Secondary Education - Social Studies (BSEd-SS)</option>
+                            <option value="Bachelor of Secondary Education - Filipino">Bachelor of Secondary Education - Filipino (BSEd-Fil)</option>
+                            <option value="Bachelor of Early Childhood Education">Bachelor of Early Childhood Education (BECEd)</option>
+                            <option value="Bachelor of Special Needs Education">Bachelor of Special Needs Education (BSNEd)</option>
+                            <option value="Bachelor of Physical Education">Bachelor of Physical Education (BPEd)</option>
+                            <option value="Bachelor of Technical-Vocational Teacher Education">Bachelor of Technical-Vocational Teacher Education (BTVTed)</option>
+                            <option value="AB Communication">AB Communication (BA Comm)</option>
+                            <option value="AB Journalism">AB Journalism (BA Jour)</option>
+                            <option value="AB English Language Studies">AB English Language Studies (BA ELS)</option>
+                            <option value="AB Political Science">AB Political Science (BA PolSci)</option>
+                            <option value="AB Sociology">AB Sociology (BA Soc)</option>
+                            <option value="AB History">AB History (BA Hist)</option>
+                            <option value="AB Philosophy">AB Philosophy (BA Phil)</option>
+                            <option value="AB Psychology">AB Psychology (BA Psy)</option>
+                            <option value="BS Psychology">BS Psychology (BS Psy)</option>
+                            <option value="BS Criminology">BS Criminology (BSCrim)</option>
+                            <option value="BS Social Work">BS Social Work (BSSW)</option>
+                            <option value="BS Development Communication">BS Development Communication (DevCom)</option>
+                            <option value="BS Public Administration">BS Public Administration (BSPA)</option>
+                            <option value="BS Biology">BS Biology (BS Bio)</option>
+                            <option value="BS Chemistry">BS Chemistry (BS Chem)</option>
+                            <option value="BS Physics">BS Physics (BS Phys)</option>
+                            <option value="BS Mathematics">BS Mathematics (BS Math)</option>
+                            <option value="BS Applied Mathematics">BS Applied Mathematics (BS AppMath)</option>
+                            <option value="BS Statistics">BS Statistics (BS Stat)</option>
+                            <option value="BS Geology">BS Geology (BS Geol)</option>
+                            <option value="BS Environmental Science">BS Environmental Science (BS ES)</option>
+                            <option value="BS Marine Biology">BS Marine Biology (BS MarBio)</option>
+                            <option value="BS Marine Transportation">BS Marine Transportation (BSMT)</option>
+                            <option value="BS Marine Engineering">BS Marine Engineering (BSMarE)</option>
+                            <option value="BS Agriculture">BS Agriculture (BSAgri)</option>
+                            <option value="BS Forestry">BS Forestry (BSF)</option>
+                            <option value="BS Fisheries">BS Fisheries (BSFi)</option>
+                            <option value="BS Architecture">BS Architecture (BSArchi)</option>
+                            <option value="BS Interior Design">BS Interior Design (BSID)</option>
+                            <option value="Bachelor of Fine Arts - Painting">Bachelor of Fine Arts - Painting (BFA-Painting)</option>
+                            <option value="Bachelor of Fine Arts - Visual Communication">Bachelor of Fine Arts - Visual Communication (BFA-VisCom)</option>
+                            <option value="Bachelor of Fine Arts - Industrial Design">Bachelor of Fine Arts - Industrial Design (BFA-ID)</option>
+                            <option value="BS Food Technology">BS Food Technology (BSFT)</option>
+                        </select>
+                    </div>
+
+                    <!-- Year Level and Semester Dropdowns -->
+                    <div class="auth-input-group" style="display: flex; gap: 12px; width: 100%;">
+                        <div style="flex: 1;">
+                            <select class="form-control" id="reg-year">
+                                <option value="" disabled selected>Select Year</option>
+                                <option value="1st Year">1st Year</option>
+                                <option value="2nd Year">2nd Year</option>
+                                <option value="3rd Year">3rd Year</option>
+                                <option value="4th Year">4th Year</option>
+                                <option value="5th Year+">5th Year+</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <select class="form-control" id="reg-semester">
+                                <option value="" disabled selected>Select Sem</option>
+                                <option value="1st Sem">1st Sem</option>
+                                <option value="2nd Sem">2nd Sem</option>
+                                <option value="3rd Sem">3rd Sem</option>
+                            </select>
                         </div>
                     </div>
 
@@ -1675,6 +1857,225 @@
             </div>
         </div>
 
+        <!-- PROFILE SCREEN -->
+        <div id="screen-profile" class="screen" style="background-color: var(--surface); padding-top: 30px;">
+            <div class="onboard-top" style="justify-content: flex-start; margin-bottom: 20px; width: 100%; align-items: center; display: flex;">
+                <button class="back-btn" onclick="navigateTo('screen-home')" style="background: none; border: none; cursor: pointer; color: var(--text-primary);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round" style="width: 20px; height: 20px;">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <h2 style="font-size: 20px; font-weight: 800; margin-left: 16px; margin-top: 0; margin-bottom: 0; color: var(--text-primary);">Profile</h2>
+            </div>
+
+            <div style="flex: 1; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; padding: 0 4px;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <div style="width: 80px; height: 80px; background-color: rgba(108, 99, 255, 0.1); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--primary); margin-bottom: 12px;">
+                        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <h3 id="profile-display-name" style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px 0;">Student</h3>
+                    <p id="profile-display-email" style="font-size: 14px; color: var(--text-secondary); margin: 0;">student@university.edu</p>
+                </div>
+
+                <div class="slider-container" style="justify-content: flex-start; width: 100%; overflow-y: auto; max-height: 48vh; padding-right: 4px; display: flex; flex-direction: column; gap: 4px;">
+                    <h4 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">Edit Profile</h4>
+
+                    <div class="auth-input-group">
+                        <div class="auth-input-wrapper" style="position: relative; width: 100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <input type="text" class="form-control" placeholder="First Name" id="profile-first-name" onblur="this.value = capitalizeInput(this.value)"
+                                style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px; font-family: inherit; font-size: 14px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div class="auth-input-group">
+                        <div class="auth-input-wrapper" style="position: relative; width: 100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <input type="text" class="form-control" placeholder="Middle Name (Optional)" id="profile-middle-name" onblur="this.value = capitalizeInput(this.value)"
+                                style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px; font-family: inherit; font-size: 14px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div class="auth-input-group">
+                        <div class="auth-input-wrapper" style="position: relative; width: 100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <input type="text" class="form-control" placeholder="Surname" id="profile-surname" onblur="this.value = capitalizeInput(this.value)"
+                                style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px; font-family: inherit; font-size: 14px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div class="auth-input-group" style="display: flex; gap: 12px; width: 100%; margin-bottom: 16px;">
+                        <div class="auth-input-wrapper" style="position: relative; flex: 3; box-sizing: border-box;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <input type="date" class="form-control" id="profile-birthdate" onchange="calculateProfileAge(this.value)"
+                                style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px; box-sizing: border-box; font-family: inherit; font-size: 14px; color: #9ca3af;">
+                        </div>
+                        <div class="auth-input-wrapper" style="position: relative; flex: 2; box-sizing: border-box;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            <input type="number" class="form-control" placeholder="Age" id="profile-age" min="1" readonly
+                                style="width: 100%; display: block; padding-left: 52px; background-color: #f3f4f6; border: none; border-radius: 16px; height: 50px; box-sizing: border-box; font-family: inherit; font-size: 14px; color: #111827;">
+                        </div>
+                    </div>
+
+                    <!-- Gender Dropdown -->
+                    <div class="auth-input-group">
+                        <select class="form-control" id="profile-gender">
+                            <option value="" disabled selected>Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                            <option value="Prefer not to say">Prefer not to say</option>
+                        </select>
+                    </div>
+
+                    <!-- Course Dropdown -->
+                    <div class="auth-input-group">
+                        <select class="form-control" id="profile-course">
+                            <option value="" disabled selected>Select Course / Major</option>
+                            <option value="BS Information Technology">BS Information Technology (BSIT)</option>
+                            <option value="BS Computer Science">BS Computer Science (BSCS)</option>
+                            <option value="BS Computer Engineering">BS Computer Engineering (BSCpE)</option>
+                            <option value="BS Information Systems">BS Information Systems (BSIS)</option>
+                            <option value="BS Entertainment and Multimedia Computing">BS Entertainment and Multimedia Computing (BSEMC)</option>
+                            <option value="BS Library and Information Science">BS Library and Information Science (BLIS)</option>
+                            <option value="BS Business Administration - Marketing Management">BS Business Administration - Marketing Management (BSBA-MM)</option>
+                            <option value="BS Business Administration - Financial Management">BS Business Administration - Financial Management (BSBA-FM)</option>
+                            <option value="BS Business Administration - Human Resource Management">BS Business Administration - Human Resource Management (BSBA-HRM)</option>
+                            <option value="BS Business Administration - Operations Management">BS Business Administration - Operations Management (BSBA-OM)</option>
+                            <option value="BS Business Administration - Business Economics">BS Business Administration - Business Economics (BSBA-BE)</option>
+                            <option value="BS Accountancy">BS Accountancy (BSA)</option>
+                            <option value="BS Management Accounting">BS Management Accounting (BSMA)</option>
+                            <option value="BS Internal Auditing">BS Internal Auditing (BSIA)</option>
+                            <option value="BS Entrepreneurship">BS Entrepreneurship (BS Entrep)</option>
+                            <option value="BS Real Estate Management">BS Real Estate Management (BS REM)</option>
+                            <option value="BS Customs Administration">BS Customs Administration (BSCA)</option>
+                            <option value="BS Office Administration">BS Office Administration (BSOA)</option>
+                            <option value="BS Tourism Management">BS Tourism Management (BSTM)</option>
+                            <option value="BS Hospitality Management">BS Hospitality Management (BSHM)</option>
+                            <option value="BS Civil Engineering">BS Civil Engineering (BSCE)</option>
+                            <option value="BS Electrical Engineering">BS Electrical Engineering (BSEE)</option>
+                            <option value="BS Mechanical Engineering">BS Mechanical Engineering (BSME)</option>
+                            <option value="BS Electronics Engineering">BS Electronics Engineering (BSECE)</option>
+                            <option value="BS Chemical Engineering">BS Chemical Engineering (BSChE)</option>
+                            <option value="BS Industrial Engineering">BS Industrial Engineering (BSIE)</option>
+                            <option value="BS Sanitary Engineering">BS Sanitary Engineering (BSSE)</option>
+                            <option value="BS Geodetic Engineering">BS Geodetic Engineering (BSGE)</option>
+                            <option value="BS Mining Engineering">BS Mining Engineering (BSMinE)</option>
+                            <option value="BS Metallurgical Engineering">BS Metallurgical Engineering (BSMetE)</option>
+                            <option value="BS Aeronautical Engineering">BS Aeronautical Engineering (BSAeE)</option>
+                            <option value="BS Agricultural and Biosystems Engineering">BS Agricultural and Biosystems Engineering (BSABE)</option>
+                            <option value="BS Nursing">BS Nursing (BSN)</option>
+                            <option value="BS Medical Technology">BS Medical Technology (BSMT)</option>
+                            <option value="BS Pharmacy">BS Pharmacy (BSPharm)</option>
+                            <option value="BS Physical Therapy">BS Physical Therapy (BSPT)</option>
+                            <option value="BS Occupational Therapy">BS Occupational Therapy (BSOT)</option>
+                            <option value="BS Radiologic Technology">BS Radiologic Technology (BSRT)</option>
+                            <option value="BS Nutrition and Dietetics">BS Nutrition and Dietetics (BSND)</option>
+                            <option value="BS Midwifery">BS Midwifery (BSMid)</option>
+                            <option value="Doctor of Dental Medicine">Doctor of Dental Medicine (DMD)</option>
+                            <option value="Doctor of Optometry">Doctor of Optometry (OD)</option>
+                            <option value="Doctor of Veterinary Medicine">Doctor of Veterinary Medicine (DVM)</option>
+                            <option value="Bachelor of Elementary Education">Bachelor of Elementary Education (BEEd)</option>
+                            <option value="Bachelor of Secondary Education - English">Bachelor of Secondary Education - English (BSEd-Eng)</option>
+                            <option value="Bachelor of Secondary Education - Mathematics">Bachelor of Secondary Education - Mathematics (BSEd-Math)</option>
+                            <option value="Bachelor of Secondary Education - Science">Bachelor of Secondary Education - Science (BSEd-Sci)</option>
+                            <option value="Bachelor of Secondary Education - Social Studies">Bachelor of Secondary Education - Social Studies (BSEd-SS)</option>
+                            <option value="Bachelor of Secondary Education - Filipino">Bachelor of Secondary Education - Filipino (BSEd-Fil)</option>
+                            <option value="Bachelor of Early Childhood Education">Bachelor of Early Childhood Education (BECEd)</option>
+                            <option value="Bachelor of Special Needs Education">Bachelor of Special Needs Education (BSNEd)</option>
+                            <option value="Bachelor of Physical Education">Bachelor of Physical Education (BPEd)</option>
+                            <option value="Bachelor of Technical-Vocational Teacher Education">Bachelor of Technical-Vocational Teacher Education (BTVTed)</option>
+                            <option value="AB Communication">AB Communication (BA Comm)</option>
+                            <option value="AB Journalism">AB Journalism (BA Jour)</option>
+                            <option value="AB English Language Studies">AB English Language Studies (BA ELS)</option>
+                            <option value="AB Political Science">AB Political Science (BA PolSci)</option>
+                            <option value="AB Sociology">AB Sociology (BA Soc)</option>
+                            <option value="AB History">AB History (BA Hist)</option>
+                            <option value="AB Philosophy">AB Philosophy (BA Phil)</option>
+                            <option value="AB Psychology">AB Psychology (BA Psy)</option>
+                            <option value="BS Psychology">BS Psychology (BS Psy)</option>
+                            <option value="BS Criminology">BS Criminology (BSCrim)</option>
+                            <option value="BS Social Work">BS Social Work (BSSW)</option>
+                            <option value="BS Development Communication">BS Development Communication (DevCom)</option>
+                            <option value="BS Public Administration">BS Public Administration (BSPA)</option>
+                            <option value="BS Biology">BS Biology (BS Bio)</option>
+                            <option value="BS Chemistry">BS Chemistry (BS Chem)</option>
+                            <option value="BS Physics">BS Physics (BS Phys)</option>
+                            <option value="BS Mathematics">BS Mathematics (BS Math)</option>
+                            <option value="BS Applied Mathematics">BS Applied Mathematics (BS AppMath)</option>
+                            <option value="BS Statistics">BS Statistics (BS Stat)</option>
+                            <option value="BS Geology">BS Geology (BS Geol)</option>
+                            <option value="BS Environmental Science">BS Environmental Science (BS ES)</option>
+                            <option value="BS Marine Biology">BS Marine Biology (BS MarBio)</option>
+                            <option value="BS Marine Transportation">BS Marine Transportation (BSMT)</option>
+                            <option value="BS Marine Engineering">BS Marine Engineering (BSMarE)</option>
+                            <option value="BS Agriculture">BS Agriculture (BSAgri)</option>
+                            <option value="BS Forestry">BS Forestry (BSF)</option>
+                            <option value="BS Fisheries">BS Fisheries (BSFi)</option>
+                            <option value="BS Architecture">BS Architecture (BSArchi)</option>
+                            <option value="BS Interior Design">BS Interior Design (BSID)</option>
+                            <option value="Bachelor of Fine Arts - Painting">Bachelor of Fine Arts - Painting (BFA-Painting)</option>
+                            <option value="Bachelor of Fine Arts - Visual Communication">Bachelor of Fine Arts - Visual Communication (BFA-VisCom)</option>
+                            <option value="Bachelor of Fine Arts - Industrial Design">Bachelor of Fine Arts - Industrial Design (BFA-ID)</option>
+                            <option value="BS Food Technology">BS Food Technology (BSFT)</option>
+                        </select>
+                    </div>
+
+                    <!-- Year Level and Semester Dropdowns -->
+                    <div class="auth-input-group" style="display: flex; gap: 12px; width: 100%;">
+                        <div style="flex: 1;">
+                            <select class="form-control" id="profile-year">
+                                <option value="" disabled selected>Select Year</option>
+                                <option value="1st Year">1st Year</option>
+                                <option value="2nd Year">2nd Year</option>
+                                <option value="3rd Year">3rd Year</option>
+                                <option value="4th Year">4th Year</option>
+                                <option value="5th Year+">5th Year+</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <select class="form-control" id="profile-semester">
+                                <option value="" disabled selected>Select Sem</option>
+                                <option value="1st Sem">1st Sem</option>
+                                <option value="2nd Sem">2nd Sem</option>
+                                <option value="3rd Sem">3rd Sem</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn-black" onclick="saveProfileChanges()" style="margin-top: 10px; margin-bottom: 20px; font-family: inherit;">Save Changes</button>
+                </div>
+
+                <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #e5e7eb; display: flex; flex-direction: column; width: 100%; margin-bottom: 16px; box-sizing: border-box;">
+                    <button class="logout-btn" onclick="handleLogout()" style="background-color: transparent; border: 2px solid #ff4d4f; color: #ff4d4f; border-radius: 28px; padding: 14px 24px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; box-sizing: border-box; transition: all 0.2s; font-family: inherit;">
+                        Log Out
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- 4. HOME SCREEN -->
         <div id="screen-home" class="screen">
             <div class="home-header">
@@ -1701,10 +2102,10 @@
                         <h3 id="home-greeting">Hello, Student!</h3>
                         <p id="home-course-display" style="margin-top: 4px;"></p>
                     </div>
-                    <div class="welcome-card-icon">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                            <path
-                                d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7v-5z" />
+                    <div class="welcome-card-icon" onclick="navigateTo('screen-profile')" style="cursor: pointer;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
                         </svg>
                     </div>
                 </div>
@@ -2086,11 +2487,6 @@
             <h2 class="section-title" style="font-size: 20px; margin-top: 10px;">Homescreen Widget</h2>
 
             <div class="widget-screen-preview">
-                <div class="widget-bar">
-                    <span>9:41</span>
-                    <span>📶🔋</span>
-                </div>
-
                 <!-- Custom widget display -->
                 <div class="widget-sim" id="homescreen-widget-preview">
                     <h6>
@@ -2101,22 +2497,15 @@
                         </svg>
                     </h6>
                     <div id="widget-classes">
-                        <div class="widget-sim-class">
-                            <span>CS 101 - Intro to Computing</span>
-                            <span>Rm 302</span>
+                        <div class="widget-class-item" style="display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; width: 100%; text-align: left; box-sizing: border-box;">
+                            <div style="font-size: 8.5px; font-weight: 800; opacity: 0.95; line-height: 1.2; text-align: left;">Intro to Computing</div>
+                            <div style="font-size: 7.5px; opacity: 0.75; margin-top: 1px; text-align: left;">Mon • 08:30 AM - 10:00 AM</div>
                         </div>
-                        <div class="widget-sim-class">
-                            <span>CS 202 - Data Structures</span>
-                            <span>Rm 405</span>
+                        <div class="widget-class-item" style="display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; width: 100%; text-align: left; box-sizing: border-box;">
+                            <div style="font-size: 8.5px; font-weight: 800; opacity: 0.95; line-height: 1.2; text-align: left;">Data Structures & Algo</div>
+                            <div style="font-size: 7.5px; opacity: 0.75; margin-top: 1px; text-align: left;">Mon • 10:30 AM - 12:00 PM</div>
                         </div>
                     </div>
-                </div>
-
-                <div class="widget-icons">
-                    <div class="widget-icon-app"></div>
-                    <div class="widget-icon-app"></div>
-                    <div class="widget-icon-app"></div>
-                    <div class="widget-icon-app"></div>
                 </div>
             </div>
 
@@ -2135,6 +2524,7 @@
                         <option value="glass">Glassmorphism</option>
                         <option value="solid">Solid Light</option>
                         <option value="midnight">Midnight Neon</option>
+                        <option value="sunset">Sunset Gradient</option>
                     </select>
                 </div>
             </div>
@@ -2226,6 +2616,20 @@
         }
     </style>
     <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDyUpEJhmf-KjxiGI4j_AFQasJRrHxXKT8",
+            authDomain: "schedly-751cb.firebaseapp.com",
+            projectId: "schedly-751cb",
+            storageBucket: "schedly-751cb.firebasestorage.app",
+            messagingSenderId: "832199980646",
+            appId: "1:832199980646:web:68addff71649ec141adfa7",
+            measurementId: "G-RTDY3RRFYB"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
         // Modern Toast Popup Notification System (Replaces native browser window.alert)
         function showToast(message, type = 'info') {
             let container = document.getElementById('toast-container');
@@ -2294,6 +2698,19 @@
         let activeHomeTab = 'today';
         let currentTheme = 'light';
         let activeGradientIndex = 0;
+
+        let userProfile = {
+            firstName: "Student",
+            middleName: "",
+            surname: "",
+            birthdate: "",
+            age: "",
+            email: "student@university.edu",
+            course: "BS Information Technology",
+            gender: "",
+            year: "3rd Year",
+            semester: "1st Sem"
+        };
 
         let hasActiveSchedule = false;
         let scheduleData = {
@@ -2489,6 +2906,24 @@
                 renderHistory();
             } else if (screenId === 'screen-widget') {
                 renderWidgetPreview();
+            } else if (screenId === 'screen-profile') {
+                document.getElementById('profile-first-name').value = userProfile.firstName;
+                document.getElementById('profile-middle-name').value = userProfile.middleName || '';
+                document.getElementById('profile-surname').value = userProfile.surname || '';
+                document.getElementById('profile-birthdate').value = userProfile.birthdate || '';
+                document.getElementById('profile-age').value = userProfile.age || '';
+                
+                updateSelectValue('profile-course', userProfile.course || '');
+                updateSelectValue('profile-gender', userProfile.gender || '');
+                updateSelectValue('profile-year', userProfile.year || '');
+                updateSelectValue('profile-semester', userProfile.semester || '');
+                
+                const fullName = userProfile.middleName 
+                    ? `${userProfile.firstName} ${userProfile.middleName} ${userProfile.surname}` 
+                    : (userProfile.surname ? `${userProfile.firstName} ${userProfile.surname}` : userProfile.firstName);
+                
+                document.getElementById('profile-display-name').innerText = fullName;
+                document.getElementById('profile-display-email').innerText = userProfile.email;
             }
             initializeCustomDropdowns();
         }
@@ -2511,7 +2946,7 @@
             }
         }
 
-        // Mock Auth
+        // Firebase Auth & Realtime Database Integration
         function handleLogin() {
             const email = document.getElementById('login-email').value.trim();
             const pass = document.getElementById('login-pass').value;
@@ -2519,18 +2954,84 @@
                 showToast("Please fill in email and password!", 'error');
                 return;
             }
-            navigateTo('screen-home');
-            showToast("Welcome back to Schedly!", 'success');
+
+            showToast("Logging in...", "info");
+            
+            auth.signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    
+                    database.ref('users/' + user.uid).once('value')
+                        .then((snapshot) => {
+                            const data = snapshot.val();
+                            if (data) {
+                                userProfile = data;
+                            } else {
+                                userProfile = {
+                                    uid: user.uid,
+                                    email: user.email,
+                                    firstName: email.split('@')[0].split('.')[0],
+                                    firstName: email.split('@')[0].split('.')[0].charAt(0).toUpperCase() + email.split('@')[0].split('.')[0].slice(1),
+                                    surname: email.split('@')[0].split('.')[1] || 'Doe',
+                                    course: "BS Information Technology",
+                                    gender: "Female",
+                                    year: "3rd Year",
+                                    semester: "1st Sem"
+                                };
+                            }
+
+                            document.getElementById('home-greeting').innerText = `Hello, ${userProfile.firstName}!`;
+                            document.getElementById('home-course-display').innerText = userProfile.course;
+                            
+                            navigateTo('screen-home');
+                            showToast(`Welcome back, ${userProfile.firstName}!`, 'success');
+                        })
+                        .catch((error) => {
+                            console.error("Database fetch error:", error);
+                            showToast("Failed to fetch user profile: " + error.message, 'error');
+                        });
+                })
+                .catch((error) => {
+                    console.error("Login error:", error);
+                    showToast("Login failed: " + error.message, 'error');
+                });
+        }
+
+        function capitalizeInput(val) {
+            if (!val) return '';
+            return val.split(/\s+/).map(word => {
+                if (!word) return '';
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            }).join(' ');
+        }
+
+        function calculateAgeFromBirthdate(birthdateString) {
+            if (!birthdateString) return;
+            const birthdate = new Date(birthdateString);
+            const today = new Date();
+            let age = today.getFullYear() - birthdate.getFullYear();
+            const m = today.getMonth() - birthdate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthdate.getDate())) {
+                age--;
+            }
+            document.getElementById('reg-age').value = age;
         }
 
         function handleRegister() {
-            const name = document.getElementById('reg-name').value.trim();
+            const firstName = capitalizeInput(document.getElementById('reg-first-name').value.trim());
+            const middleName = capitalizeInput(document.getElementById('reg-middle-name').value.trim());
+            const surname = capitalizeInput(document.getElementById('reg-surname').value.trim());
+            const birthdate = document.getElementById('reg-birthdate').value;
+            const age = document.getElementById('reg-age').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const course = document.getElementById('reg-course').value.trim();
+            const gender = document.getElementById('reg-gender').value;
+            const year = document.getElementById('reg-year').value;
+            const semester = document.getElementById('reg-semester').value;
             const pass = document.getElementById('reg-pass').value;
             const confirmPass = document.getElementById('reg-confirm-pass').value;
 
-            if (!name || !email || !course || !pass || !confirmPass) {
+            if (!firstName || !surname || !birthdate || !age || !email || !course || !gender || !year || !semester || !pass || !confirmPass) {
                 showToast("Please fill in all registration fields!", 'error');
                 return;
             }
@@ -2540,8 +3041,149 @@
                 return;
             }
 
-            navigateTo('screen-home');
-            showToast("Account registered successfully!", 'success');
+            showToast("Registering account...", "info");
+
+            auth.createUserWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    
+                    const profileData = {
+                        uid: user.uid,
+                        firstName,
+                        middleName,
+                        surname,
+                        birthdate,
+                        age,
+                        email,
+                        course,
+                        gender,
+                        year,
+                        semester
+                    };
+
+                    database.ref('users/' + user.uid).set(profileData)
+                        .then(() => {
+                            userProfile = profileData;
+                            
+                            document.getElementById('home-greeting').innerText = `Hello, ${firstName}!`;
+                            document.getElementById('home-course-display').innerText = course;
+
+                            const fullName = middleName ? `${firstName} ${middleName} ${surname}` : `${firstName} ${surname}`;
+                            navigateTo('screen-home');
+                            showToast(`Welcome, ${fullName}! Account registered successfully!`, 'success');
+                        })
+                        .catch((error) => {
+                            console.error("Database error:", error);
+                            showToast("Account created, but failed to save profile details: " + error.message, 'error');
+                        });
+                })
+                .catch((error) => {
+                    console.error("Auth error:", error);
+                    showToast("Registration failed: " + error.message, 'error');
+                });
+        }
+
+        function calculateProfileAge(birthdateString) {
+            if (!birthdateString) return;
+            const birthdate = new Date(birthdateString);
+            const today = new Date();
+            let age = today.getFullYear() - birthdate.getFullYear();
+            const m = today.getMonth() - birthdate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthdate.getDate())) {
+                age--;
+            }
+            document.getElementById('profile-age').value = age;
+        }
+
+        // Write profile updates directly to Realtime Database
+        function saveProfileChanges() {
+            const firstName = capitalizeInput(document.getElementById('profile-first-name').value.trim());
+            const middleName = capitalizeInput(document.getElementById('profile-middle-name').value.trim());
+            const surname = capitalizeInput(document.getElementById('profile-surname').value.trim());
+            const birthdate = document.getElementById('profile-birthdate').value;
+            const age = document.getElementById('profile-age').value.trim();
+            const course = document.getElementById('profile-course').value;
+            const gender = document.getElementById('profile-gender').value;
+            const year = document.getElementById('profile-year').value;
+            const semester = document.getElementById('profile-semester').value;
+
+            if (!firstName || !surname || !birthdate || !age || !course || !gender || !year || !semester) {
+                showToast("Please fill in all required fields!", 'error');
+                return;
+            }
+
+            const updatedProfile = {
+                ...userProfile,
+                firstName,
+                middleName,
+                surname,
+                birthdate,
+                age,
+                course,
+                gender,
+                year,
+                semester
+            };
+
+            showToast("Saving changes...", "info");
+
+            const currentUser = auth.currentUser;
+            if (currentUser) {
+                database.ref('users/' + currentUser.uid).set(updatedProfile)
+                    .then(() => {
+                        userProfile = updatedProfile;
+                        
+                        document.getElementById('home-greeting').innerText = `Hello, ${firstName}!`;
+                        document.getElementById('home-course-display').innerText = course;
+
+                        showToast("Profile changes saved successfully!", "success");
+                        navigateTo('screen-home');
+                    })
+                    .catch((error) => {
+                        console.error("Database update error:", error);
+                        showToast("Failed to update database profile: " + error.message, 'error');
+                    });
+            } else {
+                userProfile = updatedProfile;
+                document.getElementById('home-greeting').innerText = `Hello, ${firstName}!`;
+                document.getElementById('home-course-display').innerText = course;
+                showToast("Profile updated locally (offline)!", "success");
+                navigateTo('screen-home');
+            }
+        }
+
+        // Signs out from Firebase Authentication
+        function handleLogout() {
+            auth.signOut().then(() => {
+                document.getElementById('login-email').value = "jane.doe@university.edu";
+                document.getElementById('login-pass').value = "";
+                
+                userProfile = {
+                    firstName: "Student",
+                    middleName: "",
+                    surname: "",
+                    birthdate: "",
+                    age: "",
+                    email: "student@university.edu",
+                    course: "BS Information Technology",
+                    gender: "",
+                    year: "3rd Year",
+                    semester: "1st Sem"
+                };
+
+                document.getElementById('home-greeting').innerText = "Hello, Student!";
+                document.getElementById('home-course-display').innerText = "";
+
+                updateSelectValue('profile-course', '');
+                updateSelectValue('profile-gender', '');
+                updateSelectValue('profile-year', '');
+                updateSelectValue('profile-semester', '');
+
+                showToast("Logged out successfully!", "info");
+                navigateTo('screen-login');
+            }).catch((error) => {
+                showToast("Logout failed: " + error.message, 'error');
+            });
         }
 
         // Theme
@@ -3401,7 +4043,7 @@
         // Render Dashboard Home Schedule
         function renderHomeSchedule() {
             const list = document.getElementById('home-schedule-list');
-            document.getElementById('home-course-display').innerText = scheduleData.course;
+            document.getElementById('home-course-display').innerText = userProfile.course;
 
             if (!hasActiveSchedule) {
                 list.innerHTML = `
@@ -3476,6 +4118,26 @@
             return `${s.hm} - ${e.hm} ${suffix}`;
         }
 
+        // Helper to wrap text for monospace thermal receipt template
+        function wrapText(text, maxChars) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+            
+            words.forEach(word => {
+                if ((currentLine + word).length > maxChars) {
+                    lines.push(currentLine.trim());
+                    currentLine = word + ' ';
+                } else {
+                    currentLine += word + ' ';
+                }
+            });
+            if (currentLine.trim()) {
+                lines.push(currentLine.trim());
+            }
+            return lines;
+        }
+
         // Render Exporter Preview
         function renderExporterPreview() {
             document.getElementById('poster-header-sy').innerText = scheduleData.sy;
@@ -3514,15 +4176,15 @@
                     position: absolute;
                     top: 38.8%;
                     left: 15.5%;
-                    width: 64%;
+                    width: 59%;
                     height: 10%;
                     display: flex;
                     flex-direction: column;
                     gap: 1.5px;
                     font-family: 'Courier New', monospace !important;
-                    font-size: 5.5px;
-                    font-weight: 700;
-                    color: #453832;
+                    font-size: 6.5px;
+                    font-weight: 900;
+                    color: #5c4033;
                     text-align: left;
                     transform: rotate(-2.3859deg);
                     transform-origin: center center;
@@ -3537,17 +4199,17 @@
 
                 bottomInfo.style.cssText = `
                     position: absolute;
-                    top: 84.8%;
+                    top: 83.5%; /* Shifted up slightly from 84.8% */
                     left: 15.5%;
-                    width: 64%;
+                    width: 59%;
                     height: 10%;
                     display: flex;
                     flex-direction: column;
                     gap: 1.5px;
                     font-family: 'Courier New', monospace !important;
-                    font-size: 5.5px;
-                    font-weight: 700;
-                    color: #453832;
+                    font-size: 6.5px;
+                    font-weight: 900;
+                    color: #5c4033;
                     text-align: left;
                     transform: rotate(-2.3859deg);
                     transform-origin: center center;
@@ -3556,16 +4218,20 @@
 
                 const totalClasses = scheduleData.sessions.length;
                 const calculatedUnits = Math.round(totalClasses * 1.8);
+                
+                const courseName = scheduleData.course || 'BS Information Technology';
+                const courseHtml = `<div style="transform: translate(-5px, 0px) rotate(-0.3deg); transform-origin: left center; font-family: 'Courier New', monospace !important; padding-left: 0px; margin-top: 2.5px; font-size: 6.1px;">Course: ${courseName}</div>`;
+
                 bottomInfo.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; font-family: 'Courier New', monospace !important; padding-left: 2px; padding-right: 2px;">
+                    <div style="display: flex; justify-content: space-between; font-family: 'Courier New', monospace !important; padding-left: 2px; padding-right: 0px;">
                         <span style="font-family: 'Courier New', monospace !important;">Item Count</span>
                         <span style="font-family: 'Courier New', monospace !important;">${totalClasses}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-family: 'Courier New', monospace !important; padding-left: 2px; padding-right: 2px;">
+                    <div style="display: flex; justify-content: space-between; font-family: 'Courier New', monospace !important; padding-left: 2px; padding-right: 0px;">
                         <span style="font-family: 'Courier New', monospace !important;">Total</span>
                         <span style="font-family: 'Courier New', monospace !important;">${calculatedUnits} units</span>
                     </div>
-                    <div style="font-family: 'Courier New', monospace !important; padding-left: 2px; margin-top: 1px;">Course: ${scheduleData.course || 'BS Information Technology'}</div>
+                    ${courseHtml}
                 `;
             } else if (theme === 'blank_template') {
                 // Blank Template: remove separate overlay divs — we put everything in the container
@@ -3591,14 +4257,14 @@
                     position: absolute;
                     top: 51.5%;
                     left: 15.5%;
-                    width: 64%;
+                    width: 59%;
                     height: 32.5%;
                     display: flex;
                     flex-direction: column;
                     gap: 0px;
                     overflow: hidden;
                     font-family: 'Courier New', monospace !important;
-                    color: #453832;
+                    color: #5c4033;
                     box-sizing: border-box;
                     padding-top: 2px;
                     transform: rotate(-2.3859deg);
@@ -3617,12 +4283,12 @@
                         row.style.cssText = `
                             display: flex;
                             align-items: center;
-                            font-size: 5.5px;
-                            font-weight: 700;
+                             font-size: 6.5px;
+                             font-weight: 900;
                             font-family: 'Courier New', monospace !important;
                             color: #453832;
                             width: 100%;
-                            height: 11.5px;
+                            height: 13.5px;
                             box-sizing: border-box;
                             white-space: nowrap;
                         `;
@@ -3632,7 +4298,7 @@
                             <span style="width: 12%; text-align: center; font-family: 'Courier New', monospace !important;">${shortDay}</span>
                             <span style="width: 50%; text-align: left; overflow: hidden; text-overflow: ellipsis; font-family: 'Courier New', monospace !important;">${session.name}</span>
                             <span style="width: 6%; text-align: center; font-family: 'Courier New', monospace !important;">-</span>
-                            <span style="width: 32%; text-align: right; font-size: 5.5px; font-family: 'Courier New', monospace !important;">${timeText}</span>
+                            <span style="width: 32%; text-align: right; font-size: 6.5px; font-family: 'Courier New', monospace !important;">${timeText}</span>
                         `;
                         container.appendChild(row);
                     });
@@ -3647,7 +4313,7 @@
                     height: 640px;
                     overflow: hidden;
                     font-family: 'Courier New', Courier, monospace !important;
-                    color: #2f2824;
+                    color: #5c4033;
                     box-sizing: border-box;
                     margin: 0;
                     padding: 0;
@@ -3671,8 +4337,8 @@
 
                 const monoFont = "'Courier New', Courier, monospace";
 
-                // Helper to add absolute text line at the exact position
-                function addText(text, xRel, yRel, fontSize, isBold, color = '#2f2824', align = 'left') {
+                // Helper to add absolute text line at the exact position with optional extra rotation and auto scale-down
+                function addText(text, xRel, yRel, fontSize, isBold, color = '#5c4033', align = 'left', extraRotate = 0, maxWidth = null) {
                     const el = document.createElement('div');
                     el.style.cssText = `
                         position: absolute;
@@ -3694,6 +4360,22 @@
                     } else {
                         el.style.left = `${180 + xRel / 3}px`;
                     }
+                    if (extraRotate !== 0) {
+                        el.style.transform = (el.style.transform || '') + ` rotate(${extraRotate}deg)`;
+                        el.style.transformOrigin = 'left center';
+                    }
+                    if (maxWidth) {
+                        el.style.maxWidth = `${maxWidth}px`;
+                        // Auto scale down font size if it exceeds maxWidth
+                        setTimeout(() => {
+                            const scrollWidth = el.scrollWidth;
+                            if (scrollWidth > maxWidth) {
+                                const scale = maxWidth / scrollWidth;
+                                el.style.transform = (el.style.transform || '') + ` scale(${scale})`;
+                                el.style.transformOrigin = 'left center';
+                            }
+                        }, 0);
+                    }
                     el.innerText = text;
                     wrapper.appendChild(el);
                 }
@@ -3703,9 +4385,9 @@
                 let rawSy = scheduleData.sy || 'S.Y. 2026 - 2027';
                 let syFormatted = rawSy.replace(/(\d{4})\s*-\s*(\d{4})/, '$1 - $2');
 
-                addText(scheduleData.year || '4th Year', -299, -150, 6.33, true);
-                addText(`${semLabel} ${syFormatted}`, -299, -120, 6.33, true);
-                addText('EARIST', -299, -90, 6.33, true);
+                addText(scheduleData.year || '4th Year', -299, -150, 7.5, true);
+                addText(`${semLabel} ${syFormatted}`, -299, -120, 7.5, true);
+                addText('EARIST', -299, -90, 7.5, true);
 
                 // Note: Day, Subject, Time headers, dividers, and label tags are pre-printed on blank template, so we only draw rows and count values
 
@@ -3721,37 +4403,32 @@
 
                     daySessions.forEach((session, idx) => {
                         if (idx === 0) {
-                            addText(shortDay, -299, currentY, 6.0, true);
+                            addText(shortDay, -299, currentY, 7.2, true, '#453832');
                         }
                         const subjectDisplay = session.code || session.name;
-                        addText(subjectDisplay, -145, currentY, 6.0, false);
-                        addText('-', 25, currentY, 6.0, false, '#2f2824', 'center');
+                        addText(subjectDisplay, -145, currentY, 7.2, false, '#453832');
+                        addText('-', 25, currentY, 7.2, false, '#453832', 'center');
                         
                         const timeText = formatThermalTime(session.start, session.end);
-                        addText(timeText, 85, currentY, 6.0, false);
+                        addText(timeText, 282, currentY, 7.2, false, '#453832', 'right');
 
-                        currentY += 35;
+                        currentY += 38;
                     });
                     currentY += 8;
                 });
 
-                // 7. Item Count Value (Aligned to the end of the asterisk line)
+                // 7. Item Count Value (Aligned exactly to the right edge of the asterisk line)
                 const totalClasses = scheduleData.sessions.length;
-                addText(totalClasses.toString(), 278, 551.5, 6.33, true, '#2f2824', 'right');
+                addText(totalClasses.toString(), 282, 551.5, 7.5, true, '#5c4033', 'right');
 
-                // 8. Total Units Value (Aligned to the end of the asterisk line)
+                // 8. Total Units Value (Aligned exactly to the right edge of the asterisk line)
                 const calculatedUnits = Math.round(totalClasses * 1.8);
-                addText(`${calculatedUnits} units`, 278, 576, 6.33, true, '#2f2824', 'right');
+                addText(`${calculatedUnits} units`, 282, 576.0, 7.5, true, '#5c4033', 'right');
 
-                // 10. Course Label + Value (Aligned exactly to the left edge of the asterisk line)
+                // 10. Course Label + Value (Single-line, enlarged font size, aligned to left edge of asterisks and tilted less)
                 const courseName = scheduleData.course || 'BS Information Technology';
                 const courseLine = `Course: ${courseName}`;
-                if (courseLine.length > 42) {
-                    addText('Course:', -299, 630, 6.33, true);
-                    addText(courseName, -299, 652, 6.33, true);
-                } else {
-                    addText(courseLine, -299, 642.5, 6.33, true);
-                }
+                addText(courseLine, -295, 654, 6.7, true, '#5c4033', 'left', -0.3, 196);
             } else {
                 container.style.cssText = `flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 8px; position: static; color: inherit;`;
                 
@@ -3891,7 +4568,7 @@
                     card.style.background = "url('blank_template.png?v=2') no-repeat center";
                     card.style.backgroundSize = "100% 100%";
                 }
-                card.style.color = '#453832';
+                card.style.color = '#5c4033';
                 if (header) header.style.display = 'none';
                 if (footer) footer.style.display = 'none';
             } else {
@@ -3934,18 +4611,19 @@
             const classes = document.getElementById('widget-classes');
             classes.innerHTML = '';
 
-            const list = scheduleData.sessions.filter(s => s.day === 'Monday').slice(0, 2);
+            // Get up to 3 classes to display
+            const list = scheduleData.sessions.slice(0, 3);
 
             if (list.length === 0) {
-                classes.innerHTML = `<div style="font-size: 8px; text-align: center; opacity: 0.7;">Rest Day</div>`;
+                classes.innerHTML = `<div style="font-size: 8.5px; text-align: center; opacity: 0.7; margin-top: 10px;">Rest Day</div>`;
                 return;
             }
 
             list.forEach(session => {
                 classes.innerHTML += `
-                    <div class="widget-sim-class">
-                        <span>${session.code} - ${session.name}</span>
-                        <span>${session.teacher || 'TBA'}</span>
+                    <div class="widget-class-item" style="display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; width: 100%; text-align: left; box-sizing: border-box;">
+                        <div style="font-size: 8.5px; font-weight: 800; opacity: 0.95; line-height: 1.2; text-align: left;">${session.name}</div>
+                        <div style="font-size: 7.5px; opacity: 0.75; margin-top: 1px; text-align: left;">${session.day.substring(0, 3)} • ${session.start} - ${session.end}</div>
                     </div>
                 `;
             });
@@ -3971,6 +4649,9 @@
                 widget.style.background = '#0f0e1e';
                 widget.style.color = '#ff6584';
                 widget.style.border = '1px solid #ff6584';
+            } else if (bg === 'sunset') {
+                widget.style.background = 'linear-gradient(135deg, #8a2387, #e94057, #f27121)';
+                widget.style.color = '#ffffff';
             } else {
                 // Glassmorphism
                 widget.style.background = 'rgba(255, 255, 255, 0.2)';
@@ -4100,8 +4781,8 @@
                 textColor = '#453832';
                 subColor = '#5c4a3e';
             } else if (theme === 'template' || theme === 'blank_template') {
-                textColor = '#453832';
-                subColor = '#5c4a3e';
+                textColor = '#5c4033';
+                subColor = '#5c4033';
             }
 
             // Custom Fonts handling
@@ -4146,7 +4827,7 @@
 
                 let currentY = 0;
                 ctx.fillStyle = '#453832';
-                ctx.font = "bold 16px 'Courier New', monospace";
+                ctx.font = "900 21px 'Courier New', monospace";
 
                 // Draw Top Student Info
                 ctx.textAlign = 'left';
@@ -4162,7 +4843,7 @@
                     const shortDay = day.substring(0, 3).toUpperCase();
 
                     daySessions.forEach((session) => {
-                        ctx.font = "bold 16px 'Courier New', monospace";
+                        ctx.font = "900 16px 'Courier New', monospace";
                         ctx.fillStyle = '#453832';
 
                         // Column 1: Day (MON)
@@ -4176,36 +4857,41 @@
                         // Column 3: Dash (-)
                         ctx.textAlign = 'center';
                         ctx.fillText('-', 61, currentY);
-
                         // Column 4: Time (e.g. 01:00 - 02:30 pm)
                         ctx.textAlign = 'right';
                         const timeStr = `${session.start.split(' ')[0]} - ${session.end.split(' ')[0]} ${session.start.split(' ')[1] ? session.start.split(' ')[1].toLowerCase() : ''}`;
-                        ctx.fillText(timeStr, 325, currentY);
+                        ctx.fillText(timeStr, 282, currentY);
 
                         currentY += 34;
                     });
                 });
 
                 // Draw Bottom Student Info
-                ctx.font = "bold 16px 'Courier New', monospace";
+                ctx.font = "900 22px 'Courier New', monospace";
 
                 // Item Count
                 ctx.textAlign = 'left';
-                ctx.fillText('Item Count', -341, 640);
+                ctx.fillText('Item Count', -341, 648);
                 ctx.textAlign = 'right';
                 const totalClasses = scheduleData.sessions.length;
-                ctx.fillText(totalClasses.toString(), 325, 640);
+                ctx.fillText(totalClasses.toString(), 282, 648);
 
                 // Total Units
                 ctx.textAlign = 'left';
-                ctx.fillText('Total', -341, 670);
+                ctx.fillText('Total', -341, 678);
                 ctx.textAlign = 'right';
                 const calculatedUnits = Math.round(totalClasses * 1.8);
-                ctx.fillText(`${calculatedUnits} units`, 325, 670);
+                ctx.fillText(`${calculatedUnits} units`, 282, 678);
 
-                // Course
+                // Course (Shifted left to align with Item Count, font size 18.0px as single line, tilted less)
+                ctx.save();
+                ctx.translate(-295, 718);
+                ctx.rotate(-0.3 * Math.PI / 180);
+                ctx.font = "900 18.0px 'Courier New', monospace";
                 ctx.textAlign = 'left';
-                ctx.fillText(`Course: ${scheduleData.course || 'BS Information Technology'}`, -341, 700);
+                const courseName = scheduleData.course || 'BS Information Technology';
+                ctx.fillText(`Course: ${courseName}`, 0, 0, 590);
+                ctx.restore();
 
                 ctx.restore();
             } else if (theme === 'blank_template') {
@@ -4221,8 +4907,8 @@
                 const monoFont = "'Courier New', Courier, monospace";
 
                 // === Top Academic Info (Shifted down closer to the top asterisk divider line) ===
-                ctx.fillStyle = '#2f2824';
-                ctx.font = `bold 19px ${monoFont}`;
+                ctx.fillStyle = '#5c4033';
+                 ctx.font = `900 22px ${monoFont}`;
                 ctx.textAlign = 'left';
 
                 const canvasSemLabel = (scheduleData.semester || '1st Sem').replace('Sem', 'Semester');
@@ -4246,30 +4932,29 @@
                     const shortDay = dayShortMapCanvas[day] || day.substring(0, 3);
 
                     daySessions.forEach((session, idx) => {
-                        ctx.fillStyle = '#2f2824';
+                        ctx.fillStyle = '#453832';
 
                         // Day column (bold, only first row per day)
                         ctx.textAlign = 'left';
                         if (idx === 0) {
-                            ctx.font = `bold 18px ${monoFont}`;
+                            ctx.font = `900 21px ${monoFont}`;
                             ctx.fillText(shortDay, -299, bCurrentY);
                         }
 
-                        // Subject column (left aligned under Subject header)
-                        ctx.font = `18px ${monoFont}`;
+                        // Subject column (left aligned under Subject header, bold)
+                        ctx.font = `900 21px ${monoFont}`;
                         const subjectDisplay = session.code || session.name;
                         ctx.fillText(subjectDisplay, -145, bCurrentY);
 
                         // Dash (centered column between Subject and Time)
                         ctx.textAlign = 'center';
                         ctx.fillText('-', 25, bCurrentY);
-
-                        // Time column (left aligned under Time header)
-                        ctx.textAlign = 'left';
+                        // Time column (right aligned at the end of the asterisk line)
+                        ctx.textAlign = 'right';
                         const bTimeStr = formatThermalTime(session.start, session.end);
-                        ctx.fillText(bTimeStr, 85, bCurrentY);
+                        ctx.fillText(bTimeStr, 282, bCurrentY);
 
-                        bCurrentY += 35;
+                        bCurrentY += 38;
                     });
 
                     // Gap between day groups
@@ -4280,26 +4965,22 @@
                 const bTotalClasses = scheduleData.sessions.length;
                 const bCalcUnits = Math.round(bTotalClasses * 1.8);
 
-                ctx.fillStyle = '#2f2824';
-                ctx.font = `bold 19px ${monoFont}`;
-                
-                // Item Count value (Aligned to the end of the asterisk line)
+                // Item Count value (Aligned exactly to the right edge of the asterisk line)
                 ctx.textAlign = 'right';
-                ctx.fillText(bTotalClasses.toString(), 278, 551.5);
+                ctx.fillText(bTotalClasses.toString(), 282, 551.5);
 
-                // Total Units value (Aligned to the end of the asterisk line)
-                ctx.fillText(`${bCalcUnits} units`, 278, 576);
+                // Total Units value (Aligned exactly to the right edge of the asterisk line)
+                ctx.fillText(`${bCalcUnits} units`, 282, 576.0);
 
-                // Course Label + Value (Aligned exactly to the left edge of the asterisk line)
+                // Course Label + Value (Single-line, enlarged font, aligned exactly to the left edge of asterisks and tilted less)
+                ctx.save();
+                ctx.translate(-295, 654);
+                ctx.rotate(-0.3 * Math.PI / 180);
+                ctx.font = `900 18.0px ${monoFont}`;
                 ctx.textAlign = 'left';
-                const canvasCourseName = scheduleData.course || 'BS Information Technology';
-                const canvasCourseLine = `Course: ${canvasCourseName}`;
-                if (canvasCourseLine.length > 42) {
-                    ctx.fillText('Course:', -299, 630);
-                    ctx.fillText(canvasCourseName, -299, 652);
-                } else {
-                    ctx.fillText(canvasCourseLine, -299, 642.5);
-                }
+                const courseName = scheduleData.course || 'BS Information Technology';
+                ctx.fillText(`Course: ${courseName}`, 0, 0, 590);
+                ctx.restore();
 
                 ctx.restore();
             } else {
@@ -4498,6 +5179,9 @@
                 // Create trigger
                 const trigger = document.createElement('div');
                 trigger.className = 'custom-select-trigger';
+                if (select.value === '') {
+                    trigger.classList.add('placeholder-style');
+                }
                 trigger.textContent = select.options[select.selectedIndex]?.textContent || 'Select...';
 
                 // Create options container
@@ -4517,6 +5201,12 @@
                         e.stopPropagation();
                         select.selectedIndex = idx;
                         trigger.textContent = opt.textContent;
+
+                        if (opt.value === '') {
+                            trigger.classList.add('placeholder-style');
+                        } else {
+                            trigger.classList.remove('placeholder-style');
+                        }
 
                         optionsContainer.querySelectorAll('.custom-select-option').forEach(el => el.classList.remove('selected'));
                         customOpt.classList.add('selected');

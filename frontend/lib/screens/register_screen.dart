@@ -1,4 +1,6 @@
 import 'package:flutter/material';
+import 'package:provider/provider.dart';
+import '../providers/schedule_provider.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
@@ -12,7 +14,11 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _middleNameController = TextEditingController();
+  final _surnameController = TextEditingController();
+  final _birthdateController = TextEditingController();
+  final _ageController = TextEditingController();
   final _emailController = TextEditingController();
   final _courseController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -22,10 +28,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   String _selectedYear = '1st Year';
   final List<String> _years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year+'];
+  DateTime? _selectedBirthdate;
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _firstNameController.dispose();
+    _middleNameController.dispose();
+    _surnameController.dispose();
+    _birthdateController.dispose();
+    _ageController.dispose();
     _emailController.dispose();
     _courseController.dispose();
     _passwordController.dispose();
@@ -90,12 +101,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 
                 const SizedBox(height: 36),
                 
-                // Name Field
+                // First Name Field
                 TextFormField(
-                  controller: _nameController,
+                  controller: _firstNameController,
+                  textCapitalization: TextCapitalization.words,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
-                    hintText: "Full Name",
+                    hintText: "First Name",
                     hintStyle: const TextStyle(color: Colors.grey),
                     prefixIcon: const Icon(Icons.person_outline_rounded, size: 20, color: Colors.grey),
                     filled: true,
@@ -108,10 +120,127 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return "Name is required";
+                      return "First name is required";
                     }
                     return null;
                   },
+                ),
+                
+                const SizedBox(height: 16),
+
+                // Middle Name Field
+                TextFormField(
+                  controller: _middleNameController,
+                  textCapitalization: TextCapitalization.words,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    hintText: "Middle Name (Optional)",
+                    hintStyle: const TextStyle(color: Colors.grey),
+                    prefixIcon: const Icon(Icons.person_outline_rounded, size: 20, color: Colors.grey),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF23223F) : const Color(0xFFF3F4F6),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+
+                // Surname Field
+                TextFormField(
+                  controller: _surnameController,
+                  textCapitalization: TextCapitalization.words,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    hintText: "Surname",
+                    hintStyle: const TextStyle(color: Colors.grey),
+                    prefixIcon: const Icon(Icons.person_outline_rounded, size: 20, color: Colors.grey),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF23223F) : const Color(0xFFF3F4F6),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return "Surname is required";
+                    }
+                    return null;
+                  },
+                ),
+                
+                const SizedBox(height: 16),
+
+                // Birthdate + Age Fields Row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Birthdate Field
+                    Expanded(
+                      flex: 3,
+                      child: TextFormField(
+                        controller: _birthdateController,
+                        readOnly: true,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                        decoration: InputDecoration(
+                          hintText: "Birthdate",
+                          hintStyle: const TextStyle(color: Colors.grey),
+                          prefixIcon: const Icon(Icons.cake_outlined, size: 20, color: Colors.grey),
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF23223F) : const Color(0xFFF3F4F6),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onTap: _selectBirthdate,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return "Required";
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Age Field
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        controller: _ageController,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                        decoration: InputDecoration(
+                          hintText: "Age",
+                          hintStyle: const TextStyle(color: Colors.grey),
+                          prefixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.grey),
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF23223F) : const Color(0xFFF3F4F6),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return "Required";
+                          }
+                          final parsedAge = int.tryParse(value);
+                          if (parsedAge == null || parsedAge <= 0) {
+                            return "Invalid";
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 
                 const SizedBox(height: 16),
@@ -351,11 +480,79 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  String _capitalize(String text) {
+    if (text.trim().isEmpty) return '';
+    return text.trim().split(RegExp(r'\s+')).map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+  }
+
+  Future<void> _selectBirthdate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedBirthdate ?? DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).brightness == Brightness.dark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF6C63FF),
+                    onPrimary: Colors.white,
+                    surface: Color(0xFF1F1C3F),
+                    onSurface: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFF6C63FF),
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Colors.black,
+                  ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedBirthdate = picked;
+        _birthdateController.text = "${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}/${picked.year}";
+        
+        // Calculate age
+        DateTime today = DateTime.now();
+        int age = today.year - picked.year;
+        if (today.month < picked.month || (today.month == picked.month && today.day < picked.day)) {
+          age--;
+        }
+        _ageController.text = age.toString();
+      });
+    }
+  }
+
   void _handleRegister() {
     if (_formKey.currentState!.validate()) {
+      final fName = _capitalize(_firstNameController.text);
+      final mName = _capitalize(_middleNameController.text);
+      final lName = _capitalize(_surnameController.text);
+      final fullName = mName.isNotEmpty ? "$fName $mName $lName" : "$fName $lName";
+
+      // Save student profile details in ScheduleProvider
+      Provider.of<ScheduleProvider>(context, listen: false).updateStudentProfile(
+        firstName: fName,
+        middleName: mName,
+        surname: lName,
+        birthdate: _birthdateController.text,
+        age: _ageController.text,
+        email: _emailController.text,
+        course: _courseController.text,
+        year: _selectedYear,
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Account registered: Welcome, ${_nameController.text}!"),
+          content: Text("Account registered: Welcome, $fullName!"),
           backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );

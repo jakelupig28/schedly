@@ -203,7 +203,6 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
         child: Column(
           children: [
             _buildStepIndicator(theme),
-            const Divider(height: 1),
             Expanded(
               child: _isScanning
                   ? _buildScanningLoader(theme)

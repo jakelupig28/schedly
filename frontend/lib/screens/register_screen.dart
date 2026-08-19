@@ -26,7 +26,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   late String _selectedCourse;
   String _selectedYear = '1st Year';
+  String _selectedSemester = '1st Semester';
   final List<String> _years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year+'];
+  final List<String> _semesters = ['1st Semester', '2nd Semester', '3rd Semester'];
   DateTime? _selectedBirthdate;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -349,6 +351,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Semester Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedSemester,
+                  icon: Icon(Icons.keyboard_arrow_down_rounded, color: isDark ? Colors.white70 : Colors.black87),
+                  dropdownColor: isDark ? const Color(0xFF1F1C3F) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  elevation: 8,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.timelapse_rounded, size: 20, color: Colors.grey),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF23223F) : const Color(0xFFF3F4F6),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  items: _semesters.map((String sem) {
+                    return DropdownMenuItem(
+                      value: sem,
+                      child: Text(sem),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedSemester = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
                 // Password Field
                 TextFormField(
                   controller: _passwordController,
@@ -560,6 +596,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: _emailController.text,
         course: _selectedCourse,
         year: _selectedYear,
+        semester: _selectedSemester,
       );
 
       TopNotification.show(

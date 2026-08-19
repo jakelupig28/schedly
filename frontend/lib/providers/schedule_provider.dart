@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/schedule.dart';
@@ -77,6 +78,7 @@ class ScheduleProvider with ChangeNotifier {
   String _studentBirthdate = '';
   String _studentAge = '';
   String _studentEmail = '';
+  String _studentSemester = '1st Semester';
 
   // Auth & Session Persistence
   bool _isInitialized = false;
@@ -104,6 +106,7 @@ class ScheduleProvider with ChangeNotifier {
   String _widgetBgStyle = 'Glassmorphism';
   bool _showWidgetTime = true;
   bool _showWidgetRoom = true;
+  bool _showWidgetProfessor = true;
 
   // Constructor
   ScheduleProvider() {
@@ -129,6 +132,7 @@ class ScheduleProvider with ChangeNotifier {
   String get widgetBgStyle => _widgetBgStyle;
   bool get showWidgetTime => _showWidgetTime;
   bool get showWidgetRoom => _showWidgetRoom;
+  bool get showWidgetProfessor => _showWidgetProfessor;
 
   // Auth & Session Getters
   bool get isInitialized => _isInitialized;
@@ -146,6 +150,7 @@ class ScheduleProvider with ChangeNotifier {
   String get studentBirthdate => _studentBirthdate;
   String get studentAge => _studentAge;
   String get studentEmail => _studentEmail;
+  String get studentSemester => _studentSemester.isNotEmpty ? _studentSemester : '1st Semester';
 
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
@@ -159,6 +164,7 @@ class ScheduleProvider with ChangeNotifier {
     required String email,
     required String course,
     required String year,
+    required String semester,
   }) async {
     _studentFirstName = firstName;
     _studentMiddleName = middleName;
@@ -168,6 +174,8 @@ class ScheduleProvider with ChangeNotifier {
     _studentEmail = email;
     _activeCourse = course;
     _activeYear = year;
+    _studentSemester = semester;
+    _activeSemester = semester;
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
@@ -179,6 +187,91 @@ class ScheduleProvider with ChangeNotifier {
     await prefs.setString('student_email', email);
     await prefs.setString('student_course', course);
     await prefs.setString('student_year', year);
+    await prefs.setString('student_semester', semester);
+
+    // Sync to Firebase Realtime Database
+    _syncProfileToFirebase(
+      firstName: firstName,
+      middleName: middleName,
+      surname: surname,
+      birthdate: birthdate,
+      age: age,
+      email: email,
+      course: course,
+      year: year,
+      semester: semester,
+    );
+  }
+
+  // Firebase Realtime Database Sync
+  Future<void> _syncProfileToFirebase({
+    required String firstName,
+    required String middleName,
+    required String surname,
+    required String birthdate,
+    required String age,
+    required String email,
+    required String course,
+    required String year,
+    required String semester,
+  }) async {
+    if (email.isEmpty) return;
+    try {
+      final sanitizedKey = email.replaceAll(RegExp(r'[.#$\[\]]'), '_');
+      final uri = Uri.parse('https://schedly-751cb-default-rtdb.firebaseio.com/users/$sanitizedKey.json');
+      
+      final client = HttpClient();
+      final request = await client.patchUrl(uri);
+      request.headers.contentType = ContentType.json;
+      
+      final body = json.encode({
+        'firstName': firstName,
+        'middleName': middleName,
+        'surname': surname,
+        'birthdate': birthdate,
+        'age': age,
+        'email': email,
+        'course': course,
+        'year': year,
+        'semester': semester,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+      
+      request.write(body);
+      await request.close();
+      client.close();
+    } catch (_) {}
+  }
+
+  Future<void> _fetchProfileFromFirebase(String email) async {
+    if (email.isEmpty) return;
+    try {
+      final sanitizedKey = email.replaceAll(RegExp(r'[.#$\[\]]'), '_');
+      final uri = Uri.parse('https://schedly-751cb-default-rtdb.firebaseio.com/users/$sanitizedKey.json');
+      
+      final client = HttpClient();
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        if (responseBody != 'null' && responseBody.isNotEmpty) {
+          final data = json.decode(responseBody);
+          if (data is Map<String, dynamic>) {
+            _studentFirstName = data['firstName'] ?? _studentFirstName;
+            _studentMiddleName = data['middleName'] ?? _studentMiddleName;
+            _studentSurname = data['surname'] ?? _studentSurname;
+            _studentBirthdate = data['birthdate'] ?? _studentBirthdate;
+            _studentAge = data['age'] ?? _studentAge;
+            _activeCourse = data['course'] ?? _activeCourse;
+            _activeYear = data['year'] ?? _activeYear;
+            _studentSemester = data['semester'] ?? _studentSemester;
+            _activeSemester = _studentSemester;
+            notifyListeners();
+          }
+        }
+      }
+      client.close();
+    } catch (_) {}
   }
 
   void clearStudentProfile() async {
@@ -188,6 +281,7 @@ class ScheduleProvider with ChangeNotifier {
     _studentBirthdate = '';
     _studentAge = '';
     _studentEmail = '';
+    _studentSemester = '1st Semester';
     _activeCourse = '';
     _activeYear = '';
     _isLoggedIn = false;
@@ -206,6 +300,7 @@ class ScheduleProvider with ChangeNotifier {
     await prefs.remove('student_email');
     await prefs.remove('student_course');
     await prefs.remove('student_year');
+    await prefs.remove('student_semester');
   }
 
   void updateActiveDetails({
@@ -245,11 +340,13 @@ class ScheduleProvider with ChangeNotifier {
     String? bgStyle,
     bool? showTime,
     bool? showRoom,
+    bool? showProfessor,
   }) async {
     if (size != null) _widgetSize = size;
     if (bgStyle != null) _widgetBgStyle = bgStyle;
     if (showTime != null) _showWidgetTime = showTime;
     if (showRoom != null) _showWidgetRoom = showRoom;
+    if (showProfessor != null) _showWidgetProfessor = showProfessor;
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
@@ -257,6 +354,7 @@ class ScheduleProvider with ChangeNotifier {
     await prefs.setString('widget_bg_style', _widgetBgStyle);
     await prefs.setBool('widget_show_time', _showWidgetTime);
     await prefs.setBool('widget_show_room', _showWidgetRoom);
+    await prefs.setBool('widget_show_professor', _showWidgetProfessor);
   }
 
   // Toggle Theme Mode
@@ -438,14 +536,21 @@ class ScheduleProvider with ChangeNotifier {
     _studentBirthdate = prefs.getString('student_birthdate') ?? '';
     _studentAge = prefs.getString('student_age') ?? '';
     _studentEmail = prefs.getString('student_email') ?? (_rememberMe ? _savedEmail : '');
+    _studentSemester = prefs.getString('student_semester') ?? '1st Semester';
     _activeCourse = prefs.getString('student_course') ?? _activeCourse;
     _activeYear = prefs.getString('student_year') ?? _activeYear;
+    _activeSemester = _studentSemester;
+
+    if (_studentEmail.isNotEmpty) {
+      _fetchProfileFromFirebase(_studentEmail);
+    }
 
     // Load Widget settings
     _widgetSize = prefs.getString('widget_size') ?? _widgetSize;
     _widgetBgStyle = prefs.getString('widget_bg_style') ?? _widgetBgStyle;
     _showWidgetTime = prefs.getBool('widget_show_time') ?? _showWidgetTime;
     _showWidgetRoom = prefs.getBool('widget_show_room') ?? _showWidgetRoom;
+    _showWidgetProfessor = prefs.getBool('widget_show_professor') ?? _showWidgetProfessor;
 
     // Load History
     final historyJson = prefs.getString('schedule_history');

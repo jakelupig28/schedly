@@ -1744,6 +1744,7 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
   late TextEditingController _emailController;
   late String _selectedCourse;
   late String _selectedYear;
+  late String _selectedSemester;
   DateTime? _selectedBirthdate;
 
   @override
@@ -1762,6 +1763,9 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
     _selectedYear = ScheduleProvider.availableYears.contains(widget.provider.activeYear)
         ? widget.provider.activeYear
         : ScheduleProvider.availableYears.first;
+    _selectedSemester = ['1st Semester', '2nd Semester', '3rd Semester'].contains(widget.provider.studentSemester)
+        ? widget.provider.studentSemester
+        : '1st Semester';
 
     if (widget.provider.studentBirthdate.isNotEmpty) {
       try {
@@ -1829,6 +1833,7 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
         email: _emailController.text,
         course: _selectedCourse,
         year: _selectedYear,
+        semester: _selectedSemester,
       );
 
       Navigator.of(context).pop();
@@ -2041,6 +2046,31 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
                     if (value != null) {
                       setState(() {
                         _selectedYear = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Semester Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedSemester,
+                  dropdownColor: isDark ? const Color(0xFF1F1C3F) : Colors.white,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: const InputDecoration(
+                    labelText: "Semester",
+                    prefixIcon: Icon(Icons.timelapse_rounded, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: "1st Semester", child: Text("1st Semester")),
+                    DropdownMenuItem(value: "2nd Semester", child: Text("2nd Semester")),
+                    DropdownMenuItem(value: "3rd Semester", child: Text("3rd Semester")),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedSemester = value;
                       });
                     }
                   },

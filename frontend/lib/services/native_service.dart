@@ -18,6 +18,15 @@ class NativeService {
     } catch (_) {}
   }
 
+  /// Triggers immediate Android MediaStore scan so the file appears in the Gallery in milliseconds
+  static Future<void> scanMediaFile(String filePath) async {
+    try {
+      await _channel.invokeMethod('scanMediaFile', {
+        'filePath': filePath,
+      });
+    } catch (_) {}
+  }
+
   /// Displays download completed status in the Android system status bar
   static Future<void> showDownloadFinishedNotification({
     String title = "Download Finished! 🖼️",
@@ -51,6 +60,7 @@ class NativeService {
         'subjectCode': activeSession?.subjectCode ?? (provider.activeSessions.isNotEmpty ? "FREE" : "SCHEDLY"),
         'time': activeSession != null ? "${activeSession.startTime} - ${activeSession.endTime}" : "Enjoy your day!",
         'room': activeSession?.room ?? "",
+        'instructor': activeSession?.instructor ?? "",
       };
 
       await _channel.invokeMethod('updateWidgetData', {

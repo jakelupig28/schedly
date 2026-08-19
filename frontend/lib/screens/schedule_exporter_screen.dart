@@ -22,6 +22,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
 
   // Size options: Name -> Aspect Ratio
   final Map<String, double> _sizeOptions = {
+    'Lockscreen (9:19.5)': 9 / 19.5,
     'Lockscreen (9:16)': 9 / 16,
     'Square (1:1)': 1 / 1,
     'Standard (3:4)': 3 / 4,
@@ -103,7 +104,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedSizeKey = _sizeOptions.keys.first; // Default to Lockscreen (9:16)
+    _selectedSizeKey = _sizeOptions.keys.first; // Default to Lockscreen (9:19.5)
   }
 
   @override
@@ -443,7 +444,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
       return sessions.any((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase());
     }).toList();
 
-    // Sticker Template Receipt layout
+    // Sticker Template Receipt layout (maintains true 2619:4583 aspect ratio so it never stretches or shrinks)
     if (style == 'Sticker Template') {
       return LayoutBuilder(
         builder: (context, constraints) {
@@ -464,9 +465,30 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
               ? FileImage(File(provider.customBgImagePath!)) as ImageProvider
               : const AssetImage('assets/template.png') as ImageProvider;
 
-          // Exact bounds matching the asterisk lines (21.8% to 75.2% of image width)
-          final receiptLeft = constraints.maxWidth * 0.220;
-          final receiptWidth = constraints.maxWidth * 0.530;
+          // Template native aspect ratio (2619 / 4583 = 0.571444)
+          const double templateAspect = 2619.0 / 4583.0;
+          final double canvasAspect = constraints.maxWidth / constraints.maxHeight;
+
+          double templateW = constraints.maxWidth;
+          double templateH = constraints.maxHeight;
+          double offX = 0;
+          double offY = 0;
+
+          if (canvasAspect < templateAspect) {
+            // Taller canvas (e.g. 9:19.5) -> Fit to width, center vertically
+            templateW = constraints.maxWidth;
+            templateH = templateW / templateAspect;
+            offY = (constraints.maxHeight - templateH) / 2;
+          } else {
+            // Wider canvas -> Fit to height, center horizontally
+            templateH = constraints.maxHeight;
+            templateW = templateH * templateAspect;
+            offX = (constraints.maxWidth - templateW) / 2;
+          }
+
+          // Exact bounds matching the asterisk lines (21.8% to 75.2% of template width)
+          final receiptLeft = offX + (templateW * 0.220);
+          final receiptWidth = templateW * 0.530;
 
           // Clean academic year formatting to avoid duplicate "S.Y."
           final rawSy = provider.activeSchoolYear.trim();
@@ -474,22 +496,33 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
 
           // Dynamic row height and font scaling for the schedule list
           final rowCount = flattenedSessions.isEmpty ? 1 : flattenedSessions.length;
-          final availableScheduleHeight = constraints.maxHeight * 0.246;
-          final rowHeight = (availableScheduleHeight / rowCount).clamp(constraints.maxHeight * 0.015, constraints.maxHeight * 0.024);
-          final rowFontSize = (rowHeight * 0.42).clamp(constraints.maxHeight * 0.0070, constraints.maxHeight * 0.0090);
+          final availableScheduleHeight = templateH * 0.246;
+          final rowHeight = (availableScheduleHeight / rowCount).clamp(templateH * 0.015, templateH * 0.024);
+          final rowFontSize = (rowHeight * 0.42).clamp(templateH * 0.0070, templateH * 0.0090);
 
           return Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: backgroundImageAsset,
-                fit: provider.customBgImagePath != null ? BoxFit.cover : BoxFit.fill,
-              ),
-            ),
+            color: const Color(0xFF1E1B2E), // Premium dark backdrop behind centered sticker
             child: Stack(
               children: [
+                // 0. Base Template Image fitted without stretching
+                Positioned(
+                  left: offX,
+                  top: offY,
+                  width: templateW,
+                  height: templateH,
+                  child: Image(
+                    image: backgroundImageAsset,
+                    fit: BoxFit.fill,
+                  ),
+                ),
+
                 // Custom Background Overlay if selected
                 if (provider.customBgImagePath != null)
-                  Positioned.fill(
+                  Positioned(
+                    left: offX,
+                    top: offY,
+                    width: templateW,
+                    height: templateH,
                     child: Image.asset(
                       'assets/template.png',
                       fit: BoxFit.fill,
@@ -507,7 +540,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                         Positioned(
                           left: receiptLeft,
                           width: receiptWidth,
-                          top: constraints.maxHeight * 0.446,
+                          top: offY + (templateH * 0.446),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
@@ -517,29 +550,29 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                 style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontWeight: FontWeight.w900,
-                                  fontSize: constraints.maxHeight * 0.0092,
+                                  fontSize: templateH * 0.0092,
                                   color: const Color(0xFF453832),
                                 ),
                               ),
-                              SizedBox(height: constraints.maxHeight * 0.0010),
+                              SizedBox(height: templateH * 0.0010),
                               Text(
                                 "${provider.activeSemester} $schoolYearClean",
                                 style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontWeight: FontWeight.w900,
-                                  fontSize: constraints.maxHeight * 0.0092,
+                                  fontSize: templateH * 0.0092,
                                   color: const Color(0xFF453832),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              SizedBox(height: constraints.maxHeight * 0.0010),
+                              SizedBox(height: templateH * 0.0010),
                               Text(
                                 'EARIST',
                                 style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontWeight: FontWeight.w900,
-                                  fontSize: constraints.maxHeight * 0.0092,
+                                  fontSize: templateH * 0.0092,
                                   color: const Color(0xFF453832),
                                 ),
                               ),
@@ -547,114 +580,118 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                           ),
                         ),
 
-                        // 2. Schedule list (strictly inside bounds between line 2 and line 3, never overlapping asterisk lines)
+                        // 2. Schedule list (middle part - tilted a bit to the left side)
                         Positioned(
                           left: receiptLeft,
                           width: receiptWidth,
-                          top: constraints.maxHeight * 0.536,
+                          top: offY + (templateH * 0.536),
                           height: availableScheduleHeight,
-                          child: ListView.builder(
-                            padding: EdgeInsets.zero,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: flattenedSessions.length,
-                            itemBuilder: (context, idx) {
-                              const daysMap = {
-                                'Monday': 'MON',
-                                'Tuesday': 'TUE',
-                                'Wednesday': 'WED',
-                                'Thursday': 'THU',
-                                'Friday': 'FRI',
-                                'Saturday': 'SAT',
-                                'Sunday': 'SUN'
-                              };
-                              final entry = flattenedSessions[idx];
-                              final dayName = entry.key;
-                              final session = entry.value;
+                          child: Transform.rotate(
+                            angle: -0.95 * 3.1415926535 / 180,
+                            alignment: Alignment.centerLeft,
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: flattenedSessions.length,
+                              itemBuilder: (context, idx) {
+                                const daysMap = {
+                                  'Monday': 'MON',
+                                  'Tuesday': 'TUE',
+                                  'Wednesday': 'WED',
+                                  'Thursday': 'THU',
+                                  'Friday': 'FRI',
+                                  'Saturday': 'SAT',
+                                  'Sunday': 'SUN'
+                                };
+                                final entry = flattenedSessions[idx];
+                                final dayName = entry.key;
+                                final session = entry.value;
 
-                              // Show day label only on first session of this day
-                              final bool isFirstOfDay = idx == 0 || flattenedSessions[idx - 1].key != dayName;
-                              final shortDay = isFirstOfDay ? (daysMap[dayName] ?? dayName.substring(0, 3).toUpperCase()) : '';
+                                // Show day label only on first session of this day
+                                final bool isFirstOfDay = idx == 0 || flattenedSessions[idx - 1].key != dayName;
+                                final shortDay = isFirstOfDay ? (daysMap[dayName] ?? dayName.substring(0, 3).toUpperCase()) : '';
 
-                              final startParts = session.startTime.trim().split(' ');
-                              final endParts = session.endTime.trim().split(' ');
-                              final startClock = startParts.isNotEmpty ? startParts[0] : '';
-                              final endClock = endParts.isNotEmpty ? endParts[0] : '';
-                              final period = (endParts.length > 1 ? endParts[1] : (startParts.length > 1 ? startParts[1] : '')).toLowerCase();
-                              final timeStr = "$startClock-$endClock $period";
+                                final startParts = session.startTime.trim().split(' ');
+                                final endParts = session.endTime.trim().split(' ');
+                                final startClock = startParts.isNotEmpty ? startParts[0] : '';
+                                final endClock = endParts.isNotEmpty ? endParts[0] : '';
+                                final period = (endParts.length > 1 ? endParts[1] : (startParts.length > 1 ? startParts[1] : '')).toLowerCase();
+                                final timeStr = "$startClock-$endClock $period";
 
-                              return Container(
-                                height: rowHeight,
-                                alignment: Alignment.center,
-                                child: Row(
-                                  children: [
-                                    // Column 1: Day (13% - under 'Day' header)
-                                    SizedBox(
-                                      width: receiptWidth * 0.13,
-                                      child: Text(
-                                        shortDay,
-                                        style: TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: rowFontSize,
-                                          color: const Color(0xFF453832),
+                                return Container(
+                                  height: rowHeight,
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    children: [
+                                      // Column 1: Day (13% - under 'Day' header)
+                                      SizedBox(
+                                        width: receiptWidth * 0.13,
+                                        child: Text(
+                                          shortDay,
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: rowFontSize,
+                                            color: const Color(0xFF453832),
+                                          ),
+                                          textAlign: TextAlign.left,
+                                          maxLines: 1,
+                                          softWrap: false,
                                         ),
-                                        textAlign: TextAlign.left,
-                                        maxLines: 1,
-                                        softWrap: false,
                                       ),
-                                    ),
-                                    // Column 2: Subject (50% - under 'Subject' header)
-                                    SizedBox(
-                                      width: receiptWidth * 0.50,
-                                      child: Text(
-                                        session.subjectName,
-                                        style: TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: rowFontSize,
-                                          color: const Color(0xFF453832),
+                                      // Column 2: Subject (50% - under 'Subject' header)
+                                      SizedBox(
+                                        width: receiptWidth * 0.50,
+                                        child: Text(
+                                          session.subjectName,
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: rowFontSize,
+                                            color: const Color(0xFF453832),
+                                          ),
+                                          textAlign: TextAlign.left,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          softWrap: false,
                                         ),
-                                        textAlign: TextAlign.left,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        softWrap: false,
                                       ),
-                                    ),
-                                    // Column 3: Dash (4%)
-                                    SizedBox(
-                                      width: receiptWidth * 0.04,
-                                      child: Text(
-                                        '-',
-                                        style: TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: rowFontSize,
-                                          color: const Color(0xFF453832),
+                                      // Column 3: Dash (4%)
+                                      SizedBox(
+                                        width: receiptWidth * 0.04,
+                                        child: Text(
+                                          '-',
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: rowFontSize,
+                                            color: const Color(0xFF453832),
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
-                                        textAlign: TextAlign.center,
                                       ),
-                                    ),
-                                    // Column 4: Time (33% - under 'Time' header, right aligned)
-                                    SizedBox(
-                                      width: receiptWidth * 0.33,
-                                      child: Text(
-                                        timeStr,
-                                        style: TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: rowFontSize,
-                                          color: const Color(0xFF453832),
+                                      // Column 4: Time (33% - under 'Time' header, right aligned)
+                                      SizedBox(
+                                        width: receiptWidth * 0.33,
+                                        child: Text(
+                                          timeStr,
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: rowFontSize,
+                                            color: const Color(0xFF453832),
+                                          ),
+                                          textAlign: TextAlign.right,
+                                          maxLines: 1,
+                                          softWrap: false,
+                                          overflow: TextOverflow.clip,
                                         ),
-                                        textAlign: TextAlign.right,
-                                        maxLines: 1,
-                                        softWrap: false,
-                                        overflow: TextOverflow.clip,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
 
@@ -662,7 +699,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                         Positioned(
                           left: receiptLeft,
                           width: receiptWidth,
-                          top: constraints.maxHeight * 0.796,
+                          top: offY + (templateH * 0.796),
                           child: Align(
                             alignment: Alignment.centerRight,
                             child: Text(
@@ -670,7 +707,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                               style: TextStyle(
                                 fontFamily: 'monospace',
                                 fontWeight: FontWeight.w900,
-                                fontSize: constraints.maxHeight * 0.0098,
+                                fontSize: templateH * 0.0098,
                                 color: const Color(0xFF453832),
                               ),
                             ),
@@ -681,7 +718,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                         Positioned(
                           left: receiptLeft,
                           width: receiptWidth,
-                          top: constraints.maxHeight * 0.814,
+                          top: offY + (templateH * 0.814),
                           child: Align(
                             alignment: Alignment.centerRight,
                             child: Text(
@@ -689,7 +726,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                               style: TextStyle(
                                 fontFamily: 'monospace',
                                 fontWeight: FontWeight.w900,
-                                fontSize: constraints.maxHeight * 0.0098,
+                                fontSize: templateH * 0.0098,
                                 color: const Color(0xFF453832),
                               ),
                             ),
@@ -700,7 +737,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                         Positioned(
                           left: receiptLeft,
                           width: receiptWidth,
-                          top: constraints.maxHeight * 0.846,
+                          top: offY + (templateH * 0.846),
                           child: Align(
                             alignment: Alignment.center,
                             child: Text(
@@ -708,7 +745,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                               style: TextStyle(
                                 fontFamily: 'monospace',
                                 fontWeight: FontWeight.w900,
-                                fontSize: constraints.maxHeight * 0.0088,
+                                fontSize: templateH * 0.0088,
                                 color: const Color(0xFF453832),
                               ),
                               maxLines: 1,
@@ -728,153 +765,183 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
       );
     }
 
-    // Default layout for other themes (with generous left and right margins)
-    final totalClassesCount = sessions.length;
-    final isDense = totalClassesCount > 7;
-    final double dayMargin = isDense ? 4.0 : 8.0;
-    final double dayPadding = isDense ? 5.0 : 8.0;
-    final double dayHeaderGap = isDense ? 2.0 : 4.0;
-    final double sessionPadding = isDense ? 2.5 : 4.5;
+    // Responsive layout for non-template themes using LayoutBuilder
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final h = constraints.maxHeight;
+        final w = constraints.maxWidth;
 
-    final double dayNameFontSize = isDense ? 9.0 : 10.5;
-    final double timeFontSize = isDense ? 7.5 : 8.5;
-    final double subjectFontSize = isDense ? 9.0 : 10.5;
-    final double subInfoFontSize = isDense ? 7.5 : 8.5;
+        // Is lockscreen ratio (tall ratio like 9:19.5 or 9:16)
+        final isLockscreen = (h / w) >= 1.6;
 
-    return Container(
-      decoration: backgroundDecoration,
-      padding: EdgeInsets.symmetric(
-        horizontal: isDense ? 20.0 : 28.0,
-        vertical: isDense ? 14.0 : 22.0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(height: isDense ? 4 : 10),
-          Text(
-            "${provider.activeSemester} • ${provider.activeSchoolYear}",
-            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 7.5 : 9.5, fontWeight: FontWeight.bold, color: subTextColor),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            "WEEKLY SCHEDULE",
-            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 12 : 15, fontWeight: FontWeight.w900, color: textColor),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            "${provider.activeCourse} | ${provider.activeYear} - ${provider.activeSection}",
-            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 7.5 : 9.5, fontWeight: FontWeight.normal, color: subTextColor),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: isDense ? 8 : 14),
+        // Proportional sizing
+        final double topSpace = isLockscreen ? h * 0.080 : h * 0.035;
+        final double bottomSpace = isLockscreen ? h * 0.040 : h * 0.020;
+        final double horizPadding = w * 0.06;
 
-          Expanded(
-            child: activeDays.isEmpty
-                ? Center(
-                    child: Text(
-                      "No sessions mapped to this schedule.",
-                      style: _getFontStyle(_selectedFontStyle, fontSize: 11, fontWeight: FontWeight.normal, color: subTextColor),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                : ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: activeDays.length,
-                    itemBuilder: (context, idx) {
-                      final dayName = activeDays[idx];
-                      final daySessions = sessions.where((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase()).toList();
+        final double semFontSize = (h * 0.013).clamp(8.0, 16.0);
+        final double titleFontSize = (h * 0.022).clamp(14.0, 28.0);
+        final double subTitleFontSize = (h * 0.013).clamp(8.0, 16.0);
+        final double footerFontSize = (h * 0.011).clamp(7.5, 14.0);
 
-                      return Container(
-                        margin: EdgeInsets.only(bottom: dayMargin),
-                        padding: EdgeInsets.all(dayPadding),
-                        decoration: BoxDecoration(
-                          color: containerBgColor,
-                          borderRadius: BorderRadius.circular(cellBorderRadius),
-                          border: cellBorder,
+        final double dayNameFontSize = (h * 0.015).clamp(10.0, 18.0);
+        final double timeFontSize = (h * 0.012).clamp(8.0, 15.0);
+        final double subjectFontSize = (h * 0.014).clamp(9.5, 17.0);
+        final double subInfoFontSize = (h * 0.0115).clamp(8.0, 14.0);
+
+        final double cellPadding = (h * 0.010).clamp(6.0, 16.0);
+        final double cellMargin = (h * 0.008).clamp(4.0, 14.0);
+        final double sessionSpacing = (h * 0.005).clamp(3.0, 10.0);
+
+        return Container(
+          decoration: backgroundDecoration,
+          padding: EdgeInsets.fromLTRB(horizPadding, topSpace, horizPadding, bottomSpace),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header with comfortable breathing room for lockscreen clocks
+              Text(
+                "${provider.activeSemester} • ${provider.activeSchoolYear}",
+                style: _getFontStyle(_selectedFontStyle, fontSize: semFontSize, fontWeight: FontWeight.bold, color: subTextColor),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: h * 0.003),
+              Text(
+                "WEEKLY SCHEDULE",
+                style: _getFontStyle(_selectedFontStyle, fontSize: titleFontSize, fontWeight: FontWeight.w900, color: textColor),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: h * 0.002),
+              Text(
+                "${provider.activeCourse} | ${provider.activeYear} - ${provider.activeSection}",
+                style: _getFontStyle(_selectedFontStyle, fontSize: subTitleFontSize, fontWeight: FontWeight.normal, color: subTextColor),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: h * 0.018),
+
+              // Schedule Days List - Vertically centered in remaining space
+              Expanded(
+                child: activeDays.isEmpty
+                    ? Center(
+                        child: Text(
+                          "No sessions mapped to this schedule.",
+                          style: _getFontStyle(_selectedFontStyle, fontSize: subTitleFontSize * 1.2, fontWeight: FontWeight.normal, color: subTextColor),
+                          textAlign: TextAlign.center,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              dayName.toUpperCase(),
-                              style: _getFontStyle(
-                                _selectedFontStyle,
-                                fontSize: dayNameFontSize,
-                                fontWeight: FontWeight.w900,
-                                color: style == 'Cyberpunk Neon'
-                                     ? const Color(0xFFFF007F)
-                                    : style == 'Minimalist Ink'
-                                        ? Colors.black
-                                        : textColor,
-                              ),
-                            ),
-                            SizedBox(height: dayHeaderGap),
-                            ...daySessions.map((session) {
-                              return Padding(
-                                padding: EdgeInsets.only(bottom: sessionPadding),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
+                      )
+                    : Center(
+                        child: SingleChildScrollView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: activeDays.map((dayName) {
+                              final daySessions = sessions.where((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase()).toList();
+
+                              return Container(
+                                margin: EdgeInsets.only(bottom: cellMargin),
+                                padding: EdgeInsets.all(cellPadding),
+                                decoration: BoxDecoration(
+                                  color: containerBgColor,
+                                  borderRadius: BorderRadius.circular(cellBorderRadius),
+                                  border: cellBorder,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Left time slot
                                     Text(
-                                      "${session.startTime.split(' ')[0]} - ${session.endTime}",
+                                      dayName.toUpperCase(),
                                       style: _getFontStyle(
                                         _selectedFontStyle,
-                                        fontSize: timeFontSize,
-                                        fontWeight: FontWeight.bold,
-                                        color: subTextColor,
+                                        fontSize: dayNameFontSize,
+                                        fontWeight: FontWeight.w900,
+                                        color: style == 'Cyberpunk Neon'
+                                            ? const Color(0xFFFF007F)
+                                            : style == 'Minimalist Ink'
+                                                ? Colors.black
+                                                : textColor,
                                       ),
                                     ),
-                                    SizedBox(width: isDense ? 6 : 10),
-                                    // Subject Details
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            session.subjectName,
-                                            style: _getFontStyle(
-                                              _selectedFontStyle,
-                                              fontSize: subjectFontSize,
-                                              fontWeight: FontWeight.bold,
-                                              color: textColor,
+                                    SizedBox(height: sessionSpacing),
+                                    ...daySessions.map((session) {
+                                      final profStr = session.instructor.isNotEmpty ? " • Prof: ${session.instructor}" : "";
+                                      return Padding(
+                                        padding: EdgeInsets.only(bottom: sessionSpacing),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            // Left time slot
+                                            SizedBox(
+                                              width: w * 0.28,
+                                              child: Text(
+                                                "${session.startTime.split(' ')[0]} - ${session.endTime}",
+                                                style: _getFontStyle(
+                                                  _selectedFontStyle,
+                                                  fontSize: timeFontSize,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: subTextColor,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.clip,
+                                              ),
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          Text(
-                                            "${session.subjectCode} • Room ${session.room}",
-                                            style: _getFontStyle(
-                                              _selectedFontStyle,
-                                              fontSize: subInfoFontSize,
-                                              fontWeight: FontWeight.normal,
-                                              color: subTextColor,
+                                            SizedBox(width: w * 0.02),
+                                            // Subject Details
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    session.subjectName,
+                                                    style: _getFontStyle(
+                                                      _selectedFontStyle,
+                                                      fontSize: subjectFontSize,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: textColor,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                  Text(
+                                                    "${session.subjectCode} • Room ${session.room}$profStr",
+                                                    style: _getFontStyle(
+                                                      _selectedFontStyle,
+                                                      fontSize: subInfoFontSize,
+                                                      fontWeight: FontWeight.normal,
+                                                      color: subTextColor,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                          ],
+                                        ),
+                                      );
+                                    }),
                                   ],
                                 ),
                               );
-                            }),
-                          ],
+                            }).toList(),
+                          ),
                         ),
-                      );
-                    },
-                  ),
-          ),
+                      ),
+              ),
 
-          // Poster Footer
-          Text(
-            "Generated with Schedly App",
-            style: _getFontStyle(_selectedFontStyle, fontSize: 7.5, fontWeight: FontWeight.bold, color: subTextColor.withValues(alpha: 0.5)),
-            textAlign: TextAlign.center,
+              // Poster Footer with safe margin
+              SizedBox(height: h * 0.005),
+              Text(
+                "Generated with Schedly App",
+                style: _getFontStyle(_selectedFontStyle, fontSize: footerFontSize, fontWeight: FontWeight.bold, color: subTextColor.withValues(alpha: 0.5)),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -912,13 +979,10 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
           child: Material(
             color: Colors.transparent,
             child: SizedBox(
-              width: 360,
+              width: 1080,
               child: AspectRatio(
                 aspectRatio: _sizeOptions[_selectedSizeKey]!,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: _buildSchedulePoster(provider, sessions),
-                ),
+                child: _buildSchedulePoster(provider, sessions),
               ),
             ),
           ),
@@ -948,6 +1012,9 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final file = await File('${targetDir.path}/schedly_schedule_$timestamp.png').create(recursive: true);
         await file.writeAsBytes(imageBytes);
+
+        // Immediately notify Android MediaScanner so image appears instantly in Gallery
+        await NativeService.scanMediaFile(file.path);
 
         // Hide in-app progress notice & show finished status
         TopNotification.hide();

@@ -31,6 +31,24 @@ class MainActivity : FlutterActivity() {
                     showDownloadingNotification(title, message)
                     result.success(true)
                 }
+                "scanMediaFile" -> {
+                    val filePath = call.argument<String>("filePath")
+                    if (filePath != null) {
+                        try {
+                            android.media.MediaScannerConnection.scanFile(
+                                this,
+                                arrayOf(filePath),
+                                arrayOf("image/png")
+                            ) { _, _ -> }
+
+                            val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+                            val fileUri = android.net.Uri.fromFile(java.io.File(filePath))
+                            mediaScanIntent.data = fileUri
+                            sendBroadcast(mediaScanIntent)
+                        } catch (_: Exception) {}
+                    }
+                    result.success(true)
+                }
                 "showDownloadFinishedNotification" -> {
                     val title = call.argument<String>("title") ?: "Download Complete 🖼️"
                     val message = call.argument<String>("message") ?: "Schedule wallpaper saved to your Gallery."

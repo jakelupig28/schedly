@@ -20,6 +20,7 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
   // Style customization
   late bool _showTime;
   late bool _showRoom;
+  late bool _showProfessor;
   late String _widgetBg; // 'Glassmorphism', 'Solid Light', 'Midnight Neon', 'Sunset Gradient'
 
   final List<String> _bgStyles = [
@@ -37,6 +38,7 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
     _widgetBg = provider.widgetBgStyle;
     _showTime = provider.showWidgetTime;
     _showRoom = provider.showWidgetRoom;
+    _showProfessor = provider.showWidgetProfessor;
   }
 
   @override
@@ -149,6 +151,17 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
                         contentPadding: EdgeInsets.zero,
                         dense: true,
                       ),
+                      SwitchListTile(
+                        title: const Text("Show Professor / Instructor", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        subtitle: const Text("Display teacher or professor names", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        value: _showProfessor,
+                        onChanged: (val) {
+                          setState(() => _showProfessor = val);
+                          provider.updateWidgetPreferences(showProfessor: val);
+                        },
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
                     ],
                   ),
                 ),
@@ -169,6 +182,7 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
                     bgStyle: _widgetBg,
                     showTime: _showTime,
                     showRoom: _showRoom,
+                    showProfessor: _showProfessor,
                   );
                   NativeService.syncNativeWidgetData(provider);
                   TopNotification.show(
@@ -397,7 +411,15 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
           ],
           if (_showRoom && nextClass.room.isNotEmpty) ...[
             Text(
-              nextClass.room,
+              "Room: ${nextClass.room}",
+              style: TextStyle(color: bodyColor.withValues(alpha: 0.7), fontSize: 8),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          if (_showProfessor && nextClass.instructor.isNotEmpty) ...[
+            Text(
+              "Prof: ${nextClass.instructor}",
               style: TextStyle(color: bodyColor.withValues(alpha: 0.7), fontSize: 8),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -457,6 +479,13 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            if (_showProfessor && session.instructor.isNotEmpty)
+                              Text(
+                                "Prof: ${session.instructor}",
+                                style: TextStyle(color: bodyColor.withValues(alpha: 0.75), fontSize: 8.5),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                           ],
                         ),
                       ),

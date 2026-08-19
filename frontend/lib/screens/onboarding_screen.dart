@@ -1,4 +1,6 @@
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/schedule_provider.dart';
 import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -12,8 +14,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
 
-
-
   final List<OnboardingPageData> _pages = [
     OnboardingPageData(
       title: "School Life,\nOrganized.",
@@ -22,12 +22,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     OnboardingPageData(
       title: "Snap & Extract",
-      description: "Upload a screenshot of your registration certificate, student portal schedule, or text list. Schedly parses it instantly.",
+      description: "Upload a screenshot of your registration certificate, student portal schedule, or PDF. Schedly extracts every class instantly.",
       imagePath: "assets/onboarding_2.png",
     ),
     OnboardingPageData(
+      title: "Aesthetic Wallpapers\n& Receipts",
+      description: "Transform your timetable into gorgeous lockscreens, retro receipt posters, and homescreen widgets with personalized themes.",
+      imagePath: "assets/onboarding_4.png",
+    ),
+    OnboardingPageData(
       title: "Let's Get Started",
-      description: "Create your personalized schedule in seconds. Let's go!",
+      description: "Create your personalized schedule in seconds and take full control of your semester. Let's go!",
       imagePath: "assets/onboarding_3.png",
     ),
   ];
@@ -42,6 +47,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final int lastIndex = _pages.length - 1;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
@@ -72,7 +78,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       : const SizedBox(width: 48),
 
                   // Skip Button
-                  _currentIndex < 2
+                  _currentIndex < lastIndex
                       ? TextButton(
                           onPressed: () => _navigateToLogin(context),
                           child: const Text(
@@ -101,74 +107,126 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
                 itemBuilder: (context, index) {
                   final page = _pages[index];
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 10),
-                        // Illustration
-                        Center(
-                          child: Container(
-                            height: 220,
-                            constraints: const BoxConstraints(maxWidth: 300),
-                            child: Image.asset(
-                              page.imagePath,
-                              fit: BoxFit.contain,
-                            ),
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      if (index < lastIndex) {
+                        // First 3 slides: vertically centered in available space with bigger image
+                        final imageHeight = (constraints.maxHeight * 0.52).clamp(300.0, 380.0);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Illustration (Bigger & Centered)
+                              Center(
+                                child: Container(
+                                  height: imageHeight,
+                                  constraints: const BoxConstraints(maxWidth: 380),
+                                  child: Image.asset(
+                                    page.imagePath,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              // Title
+                              Text(
+                                page.title,
+                                textAlign: TextAlign.left,
+                                style: theme.textTheme.displayLarge?.copyWith(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  color: isDark ? Colors.white : Colors.black,
+                                  height: 1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Description
+                              Text(
+                                page.description,
+                                textAlign: TextAlign.left,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  height: 1.6,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 36),
-                        // Title
-                        Text(
-                          page.title,
-                          style: theme.textTheme.displayLarge?.copyWith(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white : Colors.black,
-                            height: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // Description
-                        Text(
-                          page.description,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 14,
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
-                            height: 1.6,
-                          ),
-                        ),
+                        );
+                      }
 
-                        // Feature highlights on Slide 3
-                        if (index == 2) ...[
-                          const SizedBox(height: 24),
-                          _buildFeatureItem(
-                            Icons.camera_alt_rounded,
-                            "Snap & Parse",
-                            "Take a photo of your schedule and we'll extract it automatically.",
-                            const [Colors.black, Colors.black],
-                            isDark,
+                      // Slide 4 (Feature Summary): Vertically centered with larger image, smoothly scrollable if needed
+                      final slide4ImageHeight = (constraints.maxHeight * 0.46).clamp(320.0, 420.0);
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: constraints.maxHeight - 16),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Center(
+                                child: Container(
+                                  height: slide4ImageHeight,
+                                  constraints: const BoxConstraints(maxWidth: 400),
+                                  child: Image.asset(
+                                    page.imagePath,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                page.title,
+                                textAlign: TextAlign.left,
+                                style: theme.textTheme.displayLarge?.copyWith(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  color: isDark ? Colors.white : Colors.black,
+                                  height: 1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                page.description,
+                                textAlign: TextAlign.left,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  height: 1.5,
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              _buildFeatureItem(
+                                Icons.camera_alt_rounded,
+                                "Snap & Parse",
+                                "Take a photo of your schedule and we'll extract it automatically.",
+                                const [Colors.black, Colors.black],
+                                isDark,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildFeatureItem(
+                                Icons.palette_rounded,
+                                "Custom Themes",
+                                "Personalize your planner with beautiful styles and colors.",
+                                const [Colors.black, Colors.black],
+                                isDark,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildFeatureItem(
+                                Icons.download_rounded,
+                                "Export Anywhere",
+                                "Download as image or PDF and share with your classmates.",
+                                const [Colors.black, Colors.black],
+                                isDark,
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          _buildFeatureItem(
-                            Icons.palette_rounded,
-                            "Custom Themes",
-                            "Personalize your planner with beautiful styles and colors.",
-                            const [Colors.black, Colors.black],
-                            isDark,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildFeatureItem(
-                            Icons.download_rounded,
-                            "Export Anywhere",
-                            "Download as image or PDF and share with your classmates.",
-                            const [Colors.black, Colors.black],
-                            isDark,
-                          ),
-                        ],
-                      ],
-                    ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -180,8 +238,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Indicators (only on Slide 1 & 2)
-                  if (_currentIndex < 2) ...[
+                  // Indicators (on all slides except the last feature summary)
+                  if (_currentIndex < lastIndex) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
@@ -193,7 +251,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           decoration: BoxDecoration(
                             color: _currentIndex == index
                                 ? (isDark ? Colors.white : Colors.black)
-                                : Colors.grey.withOpacity(0.4),
+                                : Colors.grey.withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(3),
                           ),
                         ),
@@ -205,7 +263,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   // Next / Continue Pill Button
                   ElevatedButton(
                     onPressed: () {
-                      if (_currentIndex < 2) {
+                      if (_currentIndex < lastIndex) {
                         _pageController.nextPage(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
@@ -224,15 +282,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                     child: Text(
-                      _currentIndex == 2 ? "Continue" : "Next",
+                      _currentIndex == lastIndex ? "Continue" : "Next",
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-
-
                 ],
               ),
             ),
@@ -243,6 +299,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _navigateToLogin(BuildContext context) {
+    Provider.of<ScheduleProvider>(context, listen: false).markOnboardingCompleted();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
@@ -264,7 +321,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: gradientColors[0].withOpacity(0.3),
+                color: gradientColors[0].withValues(alpha: 0.3),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),

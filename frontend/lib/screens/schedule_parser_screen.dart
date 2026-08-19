@@ -1,11 +1,11 @@
-import 'dart:io';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:provider/provider';
+import 'package:provider/provider.dart';
 import '../providers/schedule_provider.dart';
 import '../models/schedule.dart';
 import '../theme/app_theme.dart';
+import '../widgets/top_notification.dart';
 import 'schedule_exporter_screen.dart';
 
 class ScheduleParserScreen extends StatefulWidget {
@@ -18,25 +18,40 @@ class ScheduleParserScreen extends StatefulWidget {
 class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
   int _currentStep = 0;
   String? _selectedFilePath;
-  String? _selectedFileName;
   String _scanType = 'scan'; // 'pdf', 'scan', 'photo'
   bool _isScanning = false;
   String _scanStatusText = "Uploading Document...";
   final ImagePicker _picker = ImagePicker();
 
-  // Controllers for schedule metadata
-  final _schoolYearController = TextEditingController();
-  final _courseController = TextEditingController();
-  final _sectionController = TextEditingController();
-  String _selectedYear = '3rd Year';
+  // Dropdown selections for schedule metadata
+  late String _selectedCourse;
+  late String _selectedSchoolYear;
+  late String _selectedSemester;
+  late String _selectedYear;
+  final _sectionController = TextEditingController(text: "Section A");
 
-  final List<String> _years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year+'];
   final List<String> _days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   @override
+  void initState() {
+    super.initState();
+    final provider = Provider.of<ScheduleProvider>(context, listen: false);
+    _selectedCourse = ScheduleProvider.availableCourses.contains(provider.activeCourse)
+        ? provider.activeCourse
+        : ScheduleProvider.availableCourses.first;
+    _selectedSchoolYear = ScheduleProvider.availableSchoolYears.contains(provider.activeSchoolYear)
+        ? provider.activeSchoolYear
+        : ScheduleProvider.availableSchoolYears.first;
+    _selectedSemester = ScheduleProvider.availableSemesters.contains(provider.activeSemester)
+        ? provider.activeSemester
+        : ScheduleProvider.availableSemesters.first;
+    _selectedYear = ScheduleProvider.availableYears.contains(provider.activeYear)
+        ? provider.activeYear
+        : ScheduleProvider.availableYears.first;
+  }
+
+  @override
   void dispose() {
-    _schoolYearController.dispose();
-    _courseController.dispose();
     _sectionController.dispose();
     super.dispose();
   }
@@ -51,19 +66,18 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
         imageQuality: 85,
       );
       if (image != null) {
+        if (!mounted) return;
         setState(() {
           _selectedFilePath = image.path;
-          _selectedFileName = image.name;
           _scanType = source == ImageSource.camera ? 'photo' : 'scan';
-          _currentStep = 1; // Move to Scanning/Review
+          _currentStep = 1;
         });
         _runScanner();
       }
     } catch (e) {
-      // In case of error/simulator limitations, let's mock it
+      if (!mounted) return;
       setState(() {
         _selectedFilePath = 'mock_cor_image.png';
-        _selectedFileName = source == ImageSource.camera ? 'camera_photo.jpg' : 'scanned_cor.png';
         _scanType = source == ImageSource.camera ? 'photo' : 'scan';
         _currentStep = 1;
       });
@@ -74,24 +88,23 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
   // Action to pick PDF file
   Future<void> _pickPDF() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      final file = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
       );
-      if (result != null && result.files.single.path != null) {
+      if (file != null && file.path != null) {
+        if (!mounted) return;
         setState(() {
-          _selectedFilePath = result.files.single.path;
-          _selectedFileName = result.files.single.name;
+          _selectedFilePath = file.path;
           _scanType = 'pdf';
-          _currentStep = 1; // Move to Scanning/Review
+          _currentStep = 1;
         });
         _runScanner();
       }
     } catch (e) {
-      // Handle error/simulator limits gracefully
+      if (!mounted) return;
       setState(() {
         _selectedFilePath = 'mock_cor_schedule.pdf';
-        _selectedFileName = 'digital_cor_2026.pdf';
         _scanType = 'pdf';
         _currentStep = 1;
       });
@@ -119,49 +132,47 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
       log3 = "Running deep OCR text recognition on schedule grid...";
     }
 
+    if (!mounted) return;
     setState(() {
       _isScanning = true;
       _scanStatusText = log1;
     });
-    await Future.delayed(const Duration(milliseconds: 1000));
-    
+    await Future.delayed(const Duration(milliseconds: 900));
+
+    if (!mounted) return;
     setState(() {
       _scanStatusText = log2;
     });
-    await Future.delayed(const Duration(milliseconds: 1200));
-    
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    if (!mounted) return;
     setState(() {
       _scanStatusText = log3;
     });
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await Future.delayed(const Duration(milliseconds: 1000));
 
+    if (!mounted) return;
     final provider = Provider.of<ScheduleProvider>(context, listen: false);
     await provider.simulateOcrScan(_selectedFilePath ?? '', scanType: _scanType);
 
-    // Pre-populate controllers with parsed details after simulated scan
-    _courseController.text = "BS Information Technology";
-    _schoolYearController.text = "S.Y. 2026-2027";
-    _sectionController.text = "Section A";
-
+    if (!mounted) return;
     setState(() {
       _isScanning = false;
-      _currentStep = 1; // Transition to review list
+      _currentStep = 1;
     });
 
-    String feedbackMsg = "Scan Complete! Found 9 class sessions.";
+    String feedbackMsg = "Scan Complete! Found 10 class sessions.";
     if (_scanType == 'pdf') {
       feedbackMsg = "Scan Complete! Digital PDF matched with 100% precision.";
     } else if (_scanType == 'scan') {
-      feedbackMsg = "Scan Complete! Accurate image scan matched with 95% precision.";
-    } else if (_scanType == 'photo') {
-      feedbackMsg = "Scan Complete! Photo capture matched with 85% precision. Review recommended.";
+      feedbackMsg = "Scan Complete! Image scan matched with 95% precision.";
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(feedbackMsg),
-        backgroundColor: Colors.green,
-      ),
+    TopNotification.show(
+      context,
+      title: "Schedule Extracted 🎉",
+      message: feedbackMsg,
+      type: NotificationType.success,
     );
   }
 
@@ -172,7 +183,11 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Scan Certificate"),
+        title: const Text(
+          "Scan Schedule",
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
+        ),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           onPressed: () {
@@ -187,11 +202,8 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Custom wizard progress indicator
             _buildStepIndicator(theme),
             const Divider(height: 1),
-
-            // Content based on step
             Expanded(
               child: _isScanning
                   ? _buildScanningLoader(theme)
@@ -228,10 +240,10 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
     bool isActive = _currentStep == stepIndex;
 
     Color nodeColor = isCompleted
-        ? Colors.green
+        ? const Color(0xFF10B981)
         : isActive
             ? theme.colorScheme.primary
-            : theme.textTheme.bodyMedium!.color!.withOpacity(0.3);
+            : theme.textTheme.bodyMedium!.color!.withValues(alpha: 0.3);
 
     return Column(
       children: [
@@ -239,13 +251,13 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: nodeColor.withOpacity(0.1),
+            color: nodeColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
             border: Border.all(color: nodeColor, width: 2),
           ),
           child: Center(
             child: isCompleted
-                ? const Icon(Icons.check_rounded, color: Colors.green, size: 16)
+                ? const Icon(Icons.check_rounded, color: Color(0xFF10B981), size: 16)
                 : Text(
                     "${stepIndex + 1}",
                     style: TextStyle(
@@ -260,9 +272,9 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
         Text(
           title,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            color: isActive ? theme.colorScheme.onBackground : theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+            color: isActive ? theme.colorScheme.onSurface : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -274,7 +286,7 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
     return Expanded(
       child: Container(
         height: 2,
-        color: isPassed ? Colors.green : theme.dividerColor.withOpacity(0.2),
+        color: isPassed ? const Color(0xFF10B981) : theme.dividerColor.withValues(alpha: 0.2),
         margin: const EdgeInsets.only(bottom: 16),
       ),
     );
@@ -324,36 +336,34 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
 
   Widget _buildUploadStep(ThemeData theme) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 120.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Text(
             "Upload Certificate of Registration",
-            style: theme.textTheme.titleLarge?.copyWith(fontSize: 22),
+            style: theme.textTheme.titleLarge?.copyWith(fontSize: 22, fontWeight: FontWeight.w800),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            "Select a clear screenshot, photo, or PDF capture of your subject times. Schedly will automatically map them out.",
+            "Select a clear screenshot, photo, or PDF of your subjects. Schedly will automatically map and organize them.",
             style: theme.textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 40),
-          
-          // Image upload placeholder
+          const SizedBox(height: 36),
+
           GestureDetector(
             onTap: () => _showImageSourcePicker(theme),
             child: Container(
-              height: 240,
+              height: 230,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.04),
+                color: theme.colorScheme.primary.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.3),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
                   width: 2,
-                  style: BorderStyle.solid, // Simulated dashed border using simple solid for design safety
                 ),
               ),
               child: Column(
@@ -362,7 +372,7 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -389,15 +399,14 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
 
-          // Tip section
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.1),
+              color: Colors.amber.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.amber.withOpacity(0.3), width: 1),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.3), width: 1),
             ),
             child: const Row(
               children: [
@@ -405,7 +414,7 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    "Tip: Make sure the subjects' time, day, and room columns are clearly visible for high scanning accuracy.",
+                    "Tip: Make sure the subject time, day, and room columns are clearly visible for maximum scanning accuracy.",
                     style: TextStyle(fontSize: 12, color: Colors.orange),
                   ),
                 ),
@@ -422,9 +431,8 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
 
     return Column(
       children: [
-        // Top info bar
         Container(
-          color: theme.colorScheme.primary.withOpacity(0.06),
+          color: theme.colorScheme.primary.withValues(alpha: 0.06),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -441,8 +449,7 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
             ],
           ),
         ),
-        
-        // List of extracted class cards
+
         Expanded(
           child: sessions.isEmpty
               ? Center(
@@ -459,37 +466,116 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                     final sessionColor = Color(session.colorValue);
 
                     return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        leading: Container(
-                          width: 16,
-                          height: 16,
-                          decoration: BoxDecoration(
-                            color: sessionColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        title: Text(
-                          session.subjectName,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        subtitle: Text(
-                          "${session.dayOfWeek} • ${session.startTime} - ${session.endTime}\nRoom: ${session.room} | ${session.instructor}",
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        isThreeLine: true,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined, size: 20),
-                              onPressed: () => _showSessionEditDialog(context, session),
+                            Container(
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: sessionColor,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: sessionColor.withValues(alpha: 0.4),
+                                    blurRadius: 6,
+                                  ),
+                                ],
+                              ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
-                              onPressed: () {
-                                provider.deleteSession(session.id);
-                              },
+                            const SizedBox(width: 14),
+
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    session.subjectName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: sessionColor.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          session.subjectCode,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: sessionColor,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          "${session.dayOfWeek} • ${session.startTime} - ${session.endTime}",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    "Room: ${session.room} | Prof: ${session.instructor}",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined, size: 20),
+                                  onPressed: () => _showSessionEditDialog(context, session),
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: "Edit Class",
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                                  onPressed: () {
+                                    provider.deleteSession(session.id);
+                                    TopNotification.show(
+                                      context,
+                                      title: "Class Removed",
+                                      message: "${session.subjectName} removed from schedule.",
+                                      type: NotificationType.info,
+                                    );
+                                  },
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: "Delete Class",
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -499,9 +585,8 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                 ),
         ),
 
-        // Review step navigation actions
         Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 110.0),
           child: Row(
             children: [
               Expanded(
@@ -511,7 +596,6 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                     setState(() {
                       _currentStep = 0;
                       _selectedFilePath = null;
-                      _selectedFileName = null;
                     });
                   },
                   child: const Text("Re-Upload"),
@@ -522,7 +606,7 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      _currentStep = 2; // Go to Metadata Setup
+                      _currentStep = 2;
                     });
                   },
                   child: const Text("Next Step"),
@@ -537,55 +621,118 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
 
   Widget _buildMetadataStep(ThemeData theme, ScheduleProvider provider) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 120.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 10),
           Text(
             "Schedule Information",
-            style: theme.textTheme.titleLarge?.copyWith(fontSize: 22),
+            style: theme.textTheme.titleLarge?.copyWith(fontSize: 22, fontWeight: FontWeight.w800),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            "Add academic details to organize and catalog this schedule in your history list.",
+            "Select academic details to organize and catalog this schedule in your Collection.",
             style: theme.textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 36),
+          const SizedBox(height: 28),
 
-          // School Year
-          Text(
-            "School Year",
-            style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _schoolYearController,
-            decoration: const InputDecoration(
-              hintText: "e.g., S.Y. 2026-2027",
-              prefixIcon: Icon(Icons.calendar_month_outlined),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Course
           Text(
             "Course / Degree Program",
             style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          TextField(
-            controller: _courseController,
+          DropdownButtonFormField<String>(
+            value: _selectedCourse,
+            isExpanded: true,
+            icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.primary),
+            dropdownColor: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            elevation: 8,
             decoration: const InputDecoration(
-              hintText: "e.g., BS Computer Science",
               prefixIcon: Icon(Icons.school_outlined),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
+            items: ScheduleProvider.availableCourses.map((String course) {
+              return DropdownMenuItem(
+                value: course,
+                child: Text(course, overflow: TextOverflow.ellipsis),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) setState(() => _selectedCourse = val);
+            },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          // Year Level & Section Row
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "School Year",
+                      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _selectedSchoolYear,
+                      icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.primary),
+                      dropdownColor: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      elevation: 8,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.calendar_month_outlined, size: 20),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                      items: ScheduleProvider.availableSchoolYears.map((String sy) {
+                        return DropdownMenuItem(value: sy, child: Text(sy, style: const TextStyle(fontSize: 13)));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedSchoolYear = val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Semester",
+                      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _selectedSemester,
+                      icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.primary),
+                      dropdownColor: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      elevation: 8,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.timelapse_rounded, size: 20),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                      items: ScheduleProvider.availableSemesters.map((String sem) {
+                        return DropdownMenuItem(value: sem, child: Text(sem, style: const TextStyle(fontSize: 13)));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedSemester = val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+
           Row(
             children: [
               Expanded(
@@ -606,7 +753,7 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
-                      items: _years.map((String yr) {
+                      items: ScheduleProvider.availableYears.map((String yr) {
                         return DropdownMenuItem(value: yr, child: Text(yr));
                       }).toList(),
                       onChanged: (val) {
@@ -616,7 +763,8 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -639,9 +787,8 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
             ],
           ),
 
-          const SizedBox(height: 48),
+          const SizedBox(height: 40),
 
-          // Save Button
           ElevatedButton(
             onPressed: () => _saveSchedule(provider),
             child: const Text("Save & Customize Schedule"),
@@ -715,7 +862,7 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.08),
+              color: theme.colorScheme.primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: theme.colorScheme.primary, size: 32),
@@ -736,7 +883,7 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
     final codeController = TextEditingController(text: session?.subjectCode ?? '');
     final roomController = TextEditingController(text: session?.room ?? '');
     final teacherController = TextEditingController(text: session?.instructor ?? '');
-    
+
     String selectedDay = session?.dayOfWeek ?? 'Monday';
     String startTimeStr = session?.startTime ?? '08:00 AM';
     String endTimeStr = session?.endTime ?? '09:30 AM';
@@ -754,21 +901,18 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Subject Name
                     TextField(
                       controller: subjectController,
                       decoration: const InputDecoration(labelText: "Subject Name"),
                     ),
                     const SizedBox(height: 12),
-                    
-                    // Subject Code
+
                     TextField(
                       controller: codeController,
                       decoration: const InputDecoration(labelText: "Subject Code"),
                     ),
                     const SizedBox(height: 12),
 
-                    // Day of Week
                     DropdownButtonFormField<String>(
                       value: selectedDay,
                       icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.primary),
@@ -785,7 +929,6 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Timings Picker Rows
                     Row(
                       children: [
                         Expanded(
@@ -831,7 +974,6 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Room & Teacher
                     TextField(
                       controller: roomController,
                       decoration: const InputDecoration(labelText: "Room / Building"),
@@ -843,7 +985,6 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Color Picker
                     const Text("Label Color", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -868,7 +1009,7 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                                 color: color,
                                 shape: BoxShape.circle,
                                 border: isSelected
-                                    ? Border.all(color: theme.colorScheme.onBackground, width: 2.5)
+                                    ? Border.all(color: theme.colorScheme.onSurface, width: 2.5)
                                     : null,
                               ),
                               child: isSelected
@@ -909,6 +1050,13 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
                       provider.addSession(newSession);
                     }
 
+                    TopNotification.show(
+                      context,
+                      title: isEditing ? "Class Updated" : "Class Added",
+                      message: "${newSession.subjectCode} - ${newSession.subjectName}",
+                      type: NotificationType.success,
+                    );
+
                     Navigator.pop(context);
                   },
                   child: Text(isEditing ? "Update" : "Add"),
@@ -936,8 +1084,8 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
             onPressed: () {
               final provider = Provider.of<ScheduleProvider>(context, listen: false);
               provider.clearActiveSessions();
-              Navigator.pop(context); // Pop dialog
-              Navigator.pop(context); // Pop screen
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
             child: const Text("Discard", style: TextStyle(color: Colors.redAccent)),
           ),
@@ -947,33 +1095,24 @@ class _ScheduleParserScreenState extends State<ScheduleParserScreen> {
   }
 
   Future<void> _saveSchedule(ScheduleProvider provider) async {
-    // Validate inputs
-    if (_courseController.text.trim().isEmpty || _sectionController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Course and Section fields are required")),
-      );
-      return;
-    }
-
-    // Save details to provider
     provider.updateActiveDetails(
-      schoolYear: _schoolYearController.text.trim(),
-      course: _courseController.text.trim(),
+      schoolYear: _selectedSchoolYear,
+      semester: _selectedSemester,
+      course: _selectedCourse,
       year: _selectedYear,
-      section: _sectionController.text.trim(),
+      section: _sectionController.text.trim().isNotEmpty ? _sectionController.text.trim() : "Section A",
     );
 
-    // Persist to history
     await provider.saveCurrentToHistory();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Schedule saved successfully!"),
-        backgroundColor: Colors.green,
-      ),
+    if (!mounted) return;
+    TopNotification.show(
+      context,
+      title: "Schedule Saved! ✨",
+      message: "$_selectedCourse ($_selectedYear, $_selectedSemester) added to your Collection.",
+      type: NotificationType.success,
     );
 
-    // Push replacement to exporter screen for dynamic theme configuration and download
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const ScheduleExporterScreen()),

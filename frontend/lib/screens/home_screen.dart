@@ -1,8 +1,11 @@
-import 'package:flutter/material';
-import 'package:provider/provider';
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../providers/schedule_provider.dart';
 import '../models/schedule.dart';
-import '../theme/app_theme.dart';
+import '../widgets/top_notification.dart';
 import 'schedule_parser_screen.dart';
 import 'schedule_exporter_screen.dart';
 import 'history_screen.dart';
@@ -10,7 +13,8 @@ import 'onboarding_screen.dart';
 import '../widgets/mock_widget_preview.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool showWelcomeBackDialog;
+  const HomeScreen({super.key, this.showWelcomeBackDialog = false});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -18,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int _selectedNavIndex = 0;
   final List<String> _days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   final List<String> _motivationalQuotes = [
@@ -34,6 +39,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _activeQuote = _motivationalQuotes[DateTime.now().second % _motivationalQuotes.length];
+
+    // Refresh activity on open
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<ScheduleProvider>(context, listen: false).touchActivity();
+        if (widget.showWelcomeBackDialog) {
+          _showWelcomeBackPopUp(context);
+        }
+      }
+    });
   }
 
   @override
@@ -46,11 +61,176 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     final provider = Provider.of<ScheduleProvider>(context);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final sessions = provider.activeSessions;
 
     return Scaffold(
+      extendBody: true,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _selectedNavIndex,
+            children: [
+              _buildDashboard(context, theme, provider, sessions),
+              const ScheduleParserScreen(),
+              const ScheduleExporterScreen(),
+              const HistoryScreen(),
+            ],
+          ),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 16,
+            child: SafeArea(
+              top: false,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(36),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                  child: Container(
+                    height: 66,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      // Pure floating glassmorphism capsule
+                      color: isDark
+                          ? const Color(0xFF1E1A3C).withValues(alpha: 0.70)
+                          : Colors.white.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(36),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.25)
+                            : Colors.white.withValues(alpha: 0.85),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildCapsuleNavItem(
+                          index: 0,
+                          icon: Icons.home_outlined,
+                          activeIcon: Icons.home_rounded,
+                          label: "Home",
+                          isDark: isDark,
+                        ),
+                        _buildCapsuleNavItem(
+                          index: 1,
+                          icon: Icons.document_scanner_outlined,
+                          activeIcon: Icons.document_scanner_rounded,
+                          label: "Scan",
+                          isDark: isDark,
+                        ),
+                        _buildCapsuleNavItem(
+                          index: 2,
+                          icon: Icons.palette_outlined,
+                          activeIcon: Icons.palette_rounded,
+                          label: "Export",
+                          isDark: isDark,
+                        ),
+                        _buildCapsuleNavItem(
+                          index: 3,
+                          icon: Icons.history_rounded,
+                          activeIcon: Icons.history_rounded,
+                          label: "History",
+                          isDark: isDark,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCapsuleNavItem({
+    required int index,
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required bool isDark,
+  }) {
+    final isSelected = _selectedNavIndex == index;
+    const activeColor = Color(0xFF6C63FF);
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedNavIndex = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(26),
+      splashColor: activeColor.withValues(alpha: 0.12),
+      highlightColor: Colors.transparent,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 16 : 14,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? activeColor.withValues(alpha: isDark ? 0.32 : 0.18)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(26),
+          border: isSelected
+              ? Border.all(
+                  color: activeColor.withValues(alpha: isDark ? 0.55 : 0.35),
+                  width: 1.2,
+                )
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              size: 22,
+              color: isSelected
+                  ? (isDark ? const Color(0xFF9D95FF) : activeColor)
+                  : (isDark ? Colors.grey[300] : Colors.grey[700]),
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? const Color(0xFF9D95FF) : activeColor,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboard(BuildContext context, ThemeData theme, ScheduleProvider provider, List<ClassSession> sessions) {
+    return Scaffold(
       appBar: AppBar(
-        title: const Text("Schedly"),
+        centerTitle: true,
+        title: Text(
+          "Schedly",
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.8,
+            color: theme.colorScheme.primary,
+          ),
+        ),
         actions: [
           IconButton(
             icon: Icon(
@@ -67,7 +247,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            // Simulated reload
             await Future.delayed(const Duration(milliseconds: 500));
             setState(() {
               _activeQuote = _motivationalQuotes[DateTime.now().second % _motivationalQuotes.length];
@@ -75,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 120.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -83,13 +262,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 _buildWelcomeCard(theme, provider),
                 const SizedBox(height: 24),
 
-                // Quick Navigation Grid
+                // Quick Actions
                 Text(
                   "Quick Actions",
-                  style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
+                  style: theme.textTheme.titleLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 _buildQuickActions(context, theme, sessions.isNotEmpty),
+                const SizedBox(height: 28),
+
+                // My Collection Section
+                _buildCollectionSection(context, theme, provider),
                 const SizedBox(height: 28),
 
                 // Active Schedule Header and Tabs
@@ -98,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   children: [
                     Text(
                       "Schedule Planner",
-                      style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
+                      style: theme.textTheme.titleLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     if (sessions.isNotEmpty)
                       Chip(
@@ -110,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             color: theme.colorScheme.primary,
                           ),
                         ),
-                        backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                         side: BorderSide.none,
                         padding: EdgeInsets.zero,
                       ),
@@ -124,6 +307,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   TabBar(
                     controller: _tabController,
                     indicatorColor: theme.colorScheme.primary,
+                    dividerColor: Colors.transparent,
+                    dividerHeight: 0,
                     labelColor: theme.colorScheme.primary,
                     unselectedLabelColor: theme.textTheme.bodyMedium?.color,
                     labelStyle: const TextStyle(fontWeight: FontWeight.bold),
@@ -134,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
-                    height: 380,
+                    height: 420,
                     child: TabBarView(
                       controller: _tabController,
                       children: [
@@ -152,12 +337,244 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  Widget _buildCollectionSection(BuildContext context, ThemeData theme, ScheduleProvider provider) {
+    final historyList = provider.history;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text(
+                  "My Collection",
+                  style: theme.textTheme.titleLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [theme.colorScheme.primary, const Color(0xFF9D4EDD)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    "${historyList.length}",
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _selectedNavIndex = 3; // Open History Tab
+                });
+              },
+              child: const Text("View All", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        if (historyList.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF252147).withValues(alpha: 0.5) : const Color(0xFFF7F8FC),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: isDark ? Colors.white12 : Colors.grey[300]!),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.collections_bookmark_rounded, size: 28, color: theme.colorScheme.primary),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "No Saved Schedules",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        "Scan your COR to catalog your semester schedule.",
+                        style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedNavIndex = 1;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text("Scan", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          )
+        else
+          SizedBox(
+            height: 126,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: historyList.length,
+              itemBuilder: (context, idx) {
+                final item = historyList[idx];
+                final isCurrentActive = provider.activeCourse == item.course &&
+                    provider.activeSchoolYear == item.schoolYear &&
+                    provider.activeSemester == item.semester &&
+                    provider.activeYear == item.year;
+
+                return GestureDetector(
+                  onTap: () {
+                    _showScheduleDetailModal(context, provider, item);
+                  },
+                  child: Container(
+                    width: 265,
+                    margin: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF252147) : Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: isCurrentActive
+                            ? theme.colorScheme.primary
+                            : (isDark ? Colors.white12 : const Color(0xFFE8EAF2)),
+                        width: isCurrentActive ? 2.0 : 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isCurrentActive
+                              ? theme.colorScheme.primary.withValues(alpha: 0.18)
+                              : Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                "${item.semester} • ${item.schoolYear}",
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                            if (isCurrentActive)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(7),
+                                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.check_circle, size: 9, color: Color(0xFF10B981)),
+                                    SizedBox(width: 3),
+                                    Text(
+                                      "ACTIVE",
+                                      style: TextStyle(
+                                        fontSize: 8.5,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF10B981),
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        Text(
+                          item.course,
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF3F4F8),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "${item.year} • ${item.sessions.length} Subjects",
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white70 : Colors.grey[700],
+                                ),
+                              ),
+                              Text(
+                                "${item.totalUnits} Units",
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildWelcomeCard(ThemeData theme, ScheduleProvider provider) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: provider.isDarkMode 
+          colors: provider.isDarkMode
               ? [const Color(0xFF2E2B5C), const Color(0xFF1E1A3C)]
               : [const Color(0xFFE8E7FF), const Color(0xFFC7C4FF)],
           begin: Alignment.topLeft,
@@ -202,9 +619,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     color: Colors.white,
                     shape: BoxShape.circle,
                   ),
-                  alignment: Alignment.center, // Strictly center the child icon
+                  alignment: Alignment.center,
                   child: Icon(
-                    Icons.person_rounded, // Changed to profile icon
+                    Icons.person_rounded,
                     color: theme.colorScheme.primary,
                     size: 26,
                   ),
@@ -250,10 +667,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           subtitle: "Import new COR",
           color: const Color(0xFF6C63FF),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ScheduleParserScreen()),
-            );
+            setState(() {
+              _selectedNavIndex = 1;
+            });
           },
         ),
         _buildActionCard(
@@ -263,10 +679,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           subtitle: "Export wallpaper",
           color: const Color(0xFFFF6584),
           onTap: hasSchedule ? () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ScheduleExporterScreen()),
-            );
+            setState(() {
+              _selectedNavIndex = 2;
+            });
           } : () => _showNoScheduleSnackbar(context),
         ),
         _buildActionCard(
@@ -276,10 +691,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           subtitle: "Past semesters",
           color: const Color(0xFF4ECDC4),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HistoryScreen()),
-            );
+            setState(() {
+              _selectedNavIndex = 3;
+            });
           },
         ),
         _buildActionCard(
@@ -288,12 +702,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           title: "Homescreen Widget",
           subtitle: "Widget simulator",
           color: const Color(0xFFFFB703),
-          onTap: hasSchedule ? () {
+          onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const MockWidgetPreview()),
             );
-          } : () => _showNoScheduleSnackbar(context),
+          },
         ),
       ],
     );
@@ -314,10 +728,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? color.withOpacity(0.12) : color.withOpacity(0.08),
+          color: isDark ? color.withValues(alpha: 0.12) : color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? color.withOpacity(0.3) : color.withOpacity(0.2),
+            color: isDark ? color.withValues(alpha: 0.3) : color.withValues(alpha: 0.2),
             width: 1.5,
           ),
         ),
@@ -328,7 +742,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 20),
@@ -366,7 +780,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Icon(
               Icons.calendar_today_rounded,
               size: 64,
-              color: theme.colorScheme.primary.withOpacity(0.4),
+              color: theme.colorScheme.primary.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 16),
             Text(
@@ -397,13 +811,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildTodayClasses(ThemeData theme, List<ClassSession> sessions) {
-    // Determine the current day of the week
     final int weekdayIndex = DateTime.now().weekday; // 1 = Monday, 7 = Sunday
     final String currentDay = _days[weekdayIndex - 1];
-    
-    final todaySessions = sessions.where((s) => s.dayOfWeek.toLowerCase() == currentDay.toLowerCase()).toList();
 
-    // Sort sessions by start time
+    final todaySessions = sessions.where((s) => s.dayOfWeek.toLowerCase() == currentDay.toLowerCase()).toList();
     todaySessions.sort((a, b) => a.startTime.compareTo(b.startTime));
 
     if (todaySessions.isEmpty) {
@@ -414,11 +825,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Icon(
               Icons.weekend_rounded,
               size: 48,
-              color: theme.colorScheme.primary.withOpacity(0.5),
+              color: theme.colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 12),
             Text(
-              "Rest Day! No classes today.",
+              "Rest Day! No classes today ($currentDay).",
               style: theme.textTheme.titleLarge?.copyWith(fontSize: 16),
             ),
             const SizedBox(height: 4),
@@ -439,58 +850,39 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Color strip on left
-                Container(
-                  width: 6,
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      bottomLeft: Radius.circular(20),
+          child: InkWell(
+            onTap: () => _showSubjectDetailModal(context, session, theme),
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Clean rounded vertical color accent pill
+                  Container(
+                    width: 5,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+                  const SizedBox(width: 14),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                session.subjectName,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: cardColor.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                session.subjectCode,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: cardColor,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          session.subjectName,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Row(
                           children: [
                             const Icon(Icons.access_time_rounded, size: 14),
@@ -510,7 +902,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               session.room,
                               style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 14),
                             const Icon(Icons.person_rounded, size: 14),
                             const SizedBox(width: 4),
                             Expanded(
@@ -526,8 +918,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  // Vertically & Horizontally centered Subject Code badge
+                  Container(
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: cardColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      session.subjectCode,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: cardColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -536,30 +947,122 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildWeeklyCalendar(ThemeData theme, List<ClassSession> sessions) {
+    final now = DateTime.now();
+    // Monday of this week
+    final mondayOfThisWeek = now.subtract(Duration(days: now.weekday - 1));
+    final monthName = DateFormat('MMMM yyyy').format(now);
+
     return DefaultTabController(
       length: _days.length,
+      initialIndex: now.weekday - 1, // Start on current day
       child: Column(
         children: [
-          // Miniature days tab bar
+          // Month Label Banner
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "📅 $monthName",
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                Text(
+                  "Week ${((now.day - 1) ~/ 7) + 1}",
+                  style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          // Days Tab Bar with Month Name & Date Numbers (No bottom divider)
           TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            indicatorSize: TabBarIndicatorSize.label,
-            labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-            tabs: _days.map((day) => Tab(text: day.substring(0, 3))).toList(),
+            indicatorSize: TabBarIndicatorSize.tab,
+            dividerColor: Colors.transparent,
+            dividerHeight: 0,
+            indicator: BoxDecoration(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            labelColor: Colors.white,
+            unselectedLabelColor: theme.textTheme.bodyMedium?.color,
+            labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+            tabs: List.generate(_days.length, (idx) {
+              final dateForDay = mondayOfThisWeek.add(Duration(days: idx));
+              final dayShort = _days[idx].substring(0, 3).toUpperCase();
+              final dayNum = dateForDay.day.toString();
+              final isToday = now.day == dateForDay.day && now.month == dateForDay.month;
+
+              return Tab(
+                height: 52,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        dayShort,
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            dayNum,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                          ),
+                          if (isToday) ...[
+                            const SizedBox(width: 2),
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: const BoxDecoration(
+                                color: Colors.amber,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
           ),
           const SizedBox(height: 12),
+
           Expanded(
             child: TabBarView(
-              children: _days.map((day) {
+              children: List.generate(_days.length, (idx) {
+                final day = _days[idx];
+                final dateForDay = mondayOfThisWeek.add(Duration(days: idx));
+                final formattedFullDate = DateFormat('EEEE, MMMM d').format(dateForDay);
+
                 final daySessions = sessions.where((s) => s.dayOfWeek.toLowerCase() == day.toLowerCase()).toList();
                 daySessions.sort((a, b) => a.startTime.compareTo(b.startTime));
 
                 if (daySessions.isEmpty) {
                   return Center(
-                    child: Text(
-                      "No classes scheduled for $day.",
-                      style: theme.textTheme.bodyMedium,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.event_busy_rounded, size: 40, color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                        const SizedBox(height: 8),
+                        Text(
+                          "No classes scheduled for $formattedFullDate",
+                          style: theme.textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   );
                 }
@@ -574,36 +1077,40 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            shape: BoxShape.circle,
+                      child: InkWell(
+                        onTap: () => _showSubjectDetailModal(context, session, theme),
+                        borderRadius: BorderRadius.circular(20),
+                        child: ListTile(
+                          leading: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                        title: Text(
-                          session.subjectName,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        subtitle: Text(
-                          "${session.startTime} - ${session.endTime} | Room: ${session.room} | Prof: ${session.instructor}",
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        trailing: Text(
-                          session.subjectCode,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: cardColor,
+                          title: Text(
+                            session.subjectName,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          subtitle: Text(
+                            "${session.startTime} - ${session.endTime} | Room: ${session.room} | Prof: ${session.instructor}",
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          trailing: Text(
+                            session.subjectCode,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: cardColor,
+                            ),
                           ),
                         ),
                       ),
                     );
                   },
                 );
-              }).toList(),
+              }),
             ),
           ),
         ],
@@ -611,12 +1118,447 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  void _showNoScheduleSnackbar(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Please upload a Certificate of Registration (CoR) first!"),
-        duration: Duration(seconds: 2),
+  void _showSubjectDetailModal(BuildContext context, ClassSession session, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = Color(session.colorValue);
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+
+    showModalBottomSheet(
+      context: context,
+      useSafeArea: true,
+      backgroundColor: isDark ? const Color(0xFF1E1A3C) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(24, 16, 24, 28 + (bottomInset > 0 ? bottomInset : 8)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Header Badge & Code
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: cardColor.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: cardColor.withValues(alpha: 0.4)),
+                      ),
+                      child: Text(
+                        session.subjectCode,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: cardColor,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Full Subject Name
+                Text(
+                  session.subjectName,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Details Grid / List
+                _buildSubjectDetailRow(
+                  icon: Icons.calendar_today_rounded,
+                  label: "Day of Week",
+                  value: session.dayOfWeek,
+                  color: cardColor,
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 12),
+                _buildSubjectDetailRow(
+                  icon: Icons.access_time_rounded,
+                  label: "Schedule Time",
+                  value: "${session.startTime} - ${session.endTime}",
+                  color: const Color(0xFF6C63FF),
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 12),
+                _buildSubjectDetailRow(
+                  icon: Icons.room_rounded,
+                  label: "Room / Building",
+                  value: session.room,
+                  color: const Color(0xFFFF6584),
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 12),
+                _buildSubjectDetailRow(
+                  icon: Icons.person_rounded,
+                  label: "Instructor / Professor",
+                  value: session.instructor,
+                  color: const Color(0xFF4ECDC4),
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 24),
+
+                // Close Button
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text("Got It", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSubjectDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF252147) : const Color(0xFFF7F8FC),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.white60 : Colors.grey[600],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showScheduleDetailModal(BuildContext context, ScheduleProvider provider, ScheduleHistoryItem item) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final activeDays = days.where((dayName) {
+      return item.sessions.any((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase());
+    }).toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E1A3C) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (sheetContext, scrollController) {
+            return Column(
+              children: [
+                // Modal Drag Handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                // Modal Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.course,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "${item.year} • ${item.semester} • ${item.schoolYear}",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(sheetContext),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+
+                // Quick Stat Badges
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  color: isDark ? const Color(0xFF252147) : const Color(0xFFF7F8FC),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatBadge("Subjects", "${item.sessions.length}", theme),
+                      _buildStatBadge("Total Units", "${item.totalUnits}", theme),
+                      _buildStatBadge("Section", item.section, theme),
+                      _buildStatBadge("Active Days", "${activeDays.length}", theme),
+                    ],
+                  ),
+                ),
+
+                // Class Sessions by Day
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(20),
+                    itemCount: activeDays.length,
+                    itemBuilder: (context, dayIdx) {
+                      final dayName = activeDays[dayIdx];
+                      final daySessions = item.sessions
+                          .where((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase())
+                          .toList();
+                      daySessions.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF252147).withValues(alpha: 0.6)
+                              : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isDark ? Colors.white12 : Colors.grey[200]!,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              dayName.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            ...daySessions.map((session) {
+                              final sessionColor = Color(session.colorValue);
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10.0),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        color: sessionColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            session.subjectName,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            "${session.subjectCode} • ${session.startTime} - ${session.endTime} | Room: ${session.room}",
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: isDark ? Colors.white60 : Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // Bottom Action Buttons
+                Container(
+                  padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + (MediaQuery.of(context).viewPadding.bottom > 0 ? MediaQuery.of(context).viewPadding.bottom : 8)),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1A3C) : Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, -4),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Load as Active button
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                          label: const Text("Set as Active"),
+                          onPressed: () {
+                            provider.loadHistoryItem(item);
+                            Navigator.pop(sheetContext);
+                            TopNotification.show(
+                              context,
+                              title: "Schedule Activated ✨",
+                              message: "${item.course} (${item.year}, ${item.semester}) is now active.",
+                              type: NotificationType.success,
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // Customize & Export button
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.palette_outlined, size: 18),
+                          label: const Text("Export Poster"),
+                          onPressed: () {
+                            provider.loadHistoryItem(item);
+                            Navigator.pop(sheetContext);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ScheduleExporterScreen()),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildStatBadge(String label, String value, ThemeData theme) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showNoScheduleSnackbar(BuildContext context) {
+    TopNotification.show(
+      context,
+      title: "No Schedule Found",
+      message: "Please upload or scan a Certificate of Registration (CoR) first!",
+      type: NotificationType.warning,
     );
   }
 
@@ -627,6 +1569,158 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       builder: (context) {
         return _ProfileEditDialog(provider: provider);
       },
+    );
+  }
+
+  void _showWelcomeBackPopUp(BuildContext context) {
+    final provider = Provider.of<ScheduleProvider>(context, listen: false);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: isDark ? const Color(0xFF1E1A3C) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Glowing Icon Badge
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text(
+                      "🎉",
+                      style: TextStyle(fontSize: 34),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Title
+                Text(
+                  "Welcome Back, ${provider.studentFirstName}! ✨",
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    color: isDark ? Colors.white : const Color(0xFF2D2E49),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Subtitle
+                Text(
+                  "Your semester schedule, saved wallpapers, and homescreen widgets are all synced and ready.",
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    color: isDark ? Colors.white70 : Colors.grey[700],
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Motivational Quote card
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2E2B5C).withValues(alpha: 0.6) : const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.tips_and_updates_rounded, color: Colors.amber, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _activeQuote,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Action Button
+                ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C63FF),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  child: const Text(
+                    "Let's Get Started 🚀",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class FirstLetterCapitalizationFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+    final text = newValue.text;
+    final buffer = StringBuffer();
+    bool capitalizeNext = true;
+    for (int i = 0; i < text.length; i++) {
+      final char = text[i];
+      if (capitalizeNext && char != ' ' && char != '-' && char != "'") {
+        buffer.write(char.toUpperCase());
+        capitalizeNext = false;
+      } else {
+        buffer.write(char);
+        if (char == ' ' || char == '-' || char == "'") {
+          capitalizeNext = true;
+        }
+      }
+    }
+    final capitalizedText = buffer.toString();
+    return TextEditingValue(
+      text: capitalizedText,
+      selection: newValue.selection,
+      composing: TextRange.empty,
     );
   }
 }
@@ -647,11 +1741,9 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
   late TextEditingController _birthdateController;
   late TextEditingController _ageController;
   late TextEditingController _emailController;
-  late TextEditingController _courseController;
+  late String _selectedCourse;
   late String _selectedYear;
   DateTime? _selectedBirthdate;
-
-  final List<String> _years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year+'];
 
   @override
   void initState() {
@@ -663,8 +1755,12 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
     _birthdateController = TextEditingController(text: widget.provider.studentBirthdate);
     _ageController = TextEditingController(text: widget.provider.studentAge);
     _emailController = TextEditingController(text: widget.provider.studentEmail);
-    _courseController = TextEditingController(text: widget.provider.activeCourse);
-    _selectedYear = widget.provider.activeYear;
+    _selectedCourse = ScheduleProvider.availableCourses.contains(widget.provider.activeCourse)
+        ? widget.provider.activeCourse
+        : ScheduleProvider.availableCourses.first;
+    _selectedYear = ScheduleProvider.availableYears.contains(widget.provider.activeYear)
+        ? widget.provider.activeYear
+        : ScheduleProvider.availableYears.first;
 
     if (widget.provider.studentBirthdate.isNotEmpty) {
       try {
@@ -684,7 +1780,6 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
     _birthdateController.dispose();
     _ageController.dispose();
     _emailController.dispose();
-    _courseController.dispose();
     super.dispose();
   }
 
@@ -702,33 +1797,12 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
       initialDate: _selectedBirthdate ?? DateTime(2000),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).brightness == Brightness.dark
-                ? const ColorScheme.dark(
-                    primary: Color(0xFF6C63FF),
-                    onPrimary: Colors.white,
-                    surface: Color(0xFF1F1C3F),
-                    onSurface: Colors.white,
-                  )
-                : const ColorScheme.light(
-                    primary: Color(0xFF6C63FF),
-                    onPrimary: Colors.white,
-                    surface: Colors.white,
-                    onSurface: Colors.black,
-                  ),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() {
         _selectedBirthdate = picked;
         _birthdateController.text = "${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}/${picked.year}";
-        
-        // Calculate age
+
         DateTime today = DateTime.now();
         int age = today.year - picked.year;
         if (today.month < picked.month || (today.month == picked.month && today.day < picked.day)) {
@@ -752,16 +1826,16 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
         birthdate: _birthdateController.text,
         age: _ageController.text,
         email: _emailController.text,
-        course: _courseController.text,
+        course: _selectedCourse,
         year: _selectedYear,
       );
 
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Profile updated successfully!"),
-          backgroundColor: Colors.green,
-        ),
+      TopNotification.show(
+        context,
+        title: "Profile Updated ✨",
+        message: "Your student profile changes have been saved.",
+        type: NotificationType.success,
       );
     }
   }
@@ -769,10 +1843,11 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
   void _logout() {
     Navigator.of(context).pop();
     widget.provider.clearStudentProfile();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Logged out successfully!"),
-      ),
+    TopNotification.show(
+      context,
+      title: "Logged Out",
+      message: "You have been logged out successfully.",
+      type: NotificationType.info,
     );
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const OnboardingScreen()),
@@ -816,11 +1891,12 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // First Name
                 TextFormField(
                   controller: _firstNameController,
                   textCapitalization: TextCapitalization.words,
+                  inputFormatters: [FirstLetterCapitalizationFormatter()],
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: const InputDecoration(
                     labelText: "First Name",
@@ -835,6 +1911,7 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
                 TextFormField(
                   controller: _middleNameController,
                   textCapitalization: TextCapitalization.words,
+                  inputFormatters: [FirstLetterCapitalizationFormatter()],
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: const InputDecoration(
                     labelText: "Middle Name",
@@ -848,6 +1925,7 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
                 TextFormField(
                   controller: _surnameController,
                   textCapitalization: TextCapitalization.words,
+                  inputFormatters: [FirstLetterCapitalizationFormatter()],
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: const InputDecoration(
                     labelText: "Surname",
@@ -921,16 +1999,27 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
                 ),
                 const SizedBox(height: 12),
 
-                // Course
-                TextFormField(
-                  controller: _courseController,
+                // Course Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedCourse,
+                  isExpanded: true,
+                  dropdownColor: isDark ? const Color(0xFF1F1C3F) : Colors.white,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: const InputDecoration(
                     labelText: "Course / Major",
                     prefixIcon: Icon(Icons.book_outlined, size: 20),
                     border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                   ),
-                  validator: (value) => value == null || value.trim().isEmpty ? "Course is required" : null,
+                  items: ScheduleProvider.availableCourses.map((course) {
+                    return DropdownMenuItem(value: course, child: Text(course, overflow: TextOverflow.ellipsis));
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedCourse = value;
+                      });
+                    }
+                  },
                 ),
                 const SizedBox(height: 12),
 
@@ -944,7 +2033,7 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
                     prefixIcon: Icon(Icons.calendar_month_outlined, size: 20),
                     border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                   ),
-                  items: _years.map((year) {
+                  items: ScheduleProvider.availableYears.map((year) {
                     return DropdownMenuItem(value: year, child: Text(year));
                   }).toList(),
                   onChanged: (value) {

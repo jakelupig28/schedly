@@ -1,13 +1,14 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/material';
-import 'package:provider/provider';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
-import 'package:path_provider/path_provider';
+import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/schedule_provider.dart';
 import '../models/schedule.dart';
-import '../theme/app_theme.dart';
+import '../widgets/top_notification.dart';
+import '../services/native_service.dart';
 
 class ScheduleExporterScreen extends StatefulWidget {
   const ScheduleExporterScreen({super.key});
@@ -18,7 +19,7 @@ class ScheduleExporterScreen extends StatefulWidget {
 
 class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
   final ScreenshotController _screenshotController = ScreenshotController();
-  
+
   // Size options: Name -> Aspect Ratio
   final Map<String, double> _sizeOptions = {
     'Lockscreen (9:16)': 9 / 16,
@@ -29,7 +30,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
   late String _selectedSizeKey;
 
   // Visual Themes
-  final List<String> _themes = ['Pastel Sky', 'Cyberpunk Neon', 'Minimalist Ink', 'Forest Study', 'Sticker Template'];
+  final List<String> _themes = ['Sticker Template', 'Pastel Sky', 'Cyberpunk Neon', 'Minimalist Ink', 'Forest Study'];
 
   // Preset Gradient Color Indexes
   final List<List<Color>> _gradientPresets = [
@@ -113,28 +114,22 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Export Schedule"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history_rounded),
-            onPressed: () {
-              Navigator.pop(context);
-              // Open History screen
-            },
-            tooltip: "History",
-          ),
-        ],
+        title: const Text(
+          "Export Schedule",
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
+        ),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 120.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. Live Preview Panel
               Text(
                 "Wallpaper Preview",
-                style: theme.textTheme.titleLarge?.copyWith(fontSize: 16),
+                style: theme.textTheme.titleLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Center(
@@ -146,7 +141,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha: 0.15),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         )
@@ -217,11 +212,11 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? theme.colorScheme.primary
-                                      : theme.colorScheme.primary.withOpacity(0.08),
+                                      : theme.colorScheme.primary.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(12),
                                   border: isSelected
                                       ? null
-                                      : Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+                                      : Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                                 ),
                                 child: Center(
                                   child: Text(
@@ -249,12 +244,12 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                             Expanded(
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                                   foregroundColor: theme.colorScheme.primary,
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
+                                    side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                                   ),
                                 ),
                                 icon: const Icon(Icons.image_outlined),
@@ -307,7 +302,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Background Gradients (Except for Minimalist Ink and Sticker Template)
+                      // Background Gradients (for gradient themes)
                       if (provider.exportThemeStyle != 'Minimalist Ink' && provider.exportThemeStyle != 'Sticker Template') ...[
                         const Text("Background Gradient", style: TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
@@ -353,30 +348,30 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                     ],
                   ),
                 ),
-                      const SizedBox(height: 24),
-                    ],
+              ),
+              const SizedBox(height: 24),
 
-                    // Download Button
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: _isSaving ? null : () => _exportPoster(theme),
-                      icon: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Icons.download_rounded),
-                      label: Text(_isSaving ? "Exporting PNG..." : "Download Poster"),
-                    ),
-                  ],
+              // Download Schedule Button
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(54),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: _isSaving ? null : () => _exportPoster(theme),
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.download_rounded),
+                label: Text(
+                  _isSaving ? "Downloading Schedule..." : "Download Schedule",
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -400,8 +395,8 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
       );
       textColor = const Color(0xFF00FFCC);
       subTextColor = const Color(0xFFFF007F);
-      containerBgColor = const Color(0xFF140F2D).withOpacity(0.8);
-      cellBorder = Border.all(color: const Color(0xFFFF007F).withOpacity(0.5), width: 1.5);
+      containerBgColor = const Color(0xFF140F2D).withValues(alpha: 0.8);
+      cellBorder = Border.all(color: const Color(0xFFFF007F).withValues(alpha: 0.5), width: 1.5);
     } else if (style == 'Minimalist Ink') {
       backgroundDecoration = const BoxDecoration(
         color: Color(0xFFFBFBFB),
@@ -409,7 +404,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
       textColor = Colors.black;
       subTextColor = Colors.black87;
       containerBgColor = Colors.white;
-      cellBorder = Border.all(color: Colors.black.withOpacity(0.2), width: 1.5);
+      cellBorder = Border.all(color: Colors.black.withValues(alpha: 0.2), width: 1.5);
       cellBorderRadius = 4.0;
     } else if (style == 'Forest Study') {
       backgroundDecoration = const BoxDecoration(
@@ -421,8 +416,8 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
       );
       textColor = const Color(0xFFE2EAD9);
       subTextColor = const Color(0xFFA5B29B);
-      containerBgColor = const Color(0xFF324631).withOpacity(0.6);
-      cellBorder = Border.all(color: const Color(0xFFA5B29B).withOpacity(0.2), width: 1.0);
+      containerBgColor = const Color(0xFF324631).withValues(alpha: 0.6);
+      cellBorder = Border.all(color: const Color(0xFFA5B29B).withValues(alpha: 0.2), width: 1.0);
     } else if (style == 'Sticker Template') {
       textColor = const Color(0xFF5C4033);
       subTextColor = const Color(0xFF5C4033);
@@ -439,16 +434,16 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
       );
       textColor = Colors.white;
       subTextColor = Colors.white70;
-      containerBgColor = Colors.white.withOpacity(0.18);
+      containerBgColor = Colors.white.withValues(alpha: 0.18);
     }
 
-    // Sort and filter active days (excluding empty ones)
+    // Sort and filter active days
     final List<String> days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     final activeDays = days.where((dayName) {
       return sessions.any((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase());
     }).toList();
 
-    // If Sticker Template, build the stack layout with absolute positioning
+    // Sticker Template Receipt layout
     if (style == 'Sticker Template') {
       return LayoutBuilder(
         builder: (context, constraints) {
@@ -456,14 +451,32 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
           final List<MapEntry<String, ClassSession>> flattenedSessions = [];
           for (final dayName in activeDays) {
             final daySessions = sessions.where((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase()).toList();
+            daySessions.sort((a, b) => a.startTime.compareTo(b.startTime));
             for (final session in daySessions) {
               flattenedSessions.add(MapEntry(dayName, session));
             }
           }
 
+          final totalClasses = flattenedSessions.length;
+          final calculatedUnits = (totalClasses * 1.8).round();
+
           final backgroundImageAsset = provider.customBgImagePath != null
               ? FileImage(File(provider.customBgImagePath!)) as ImageProvider
               : const AssetImage('assets/template.png') as ImageProvider;
+
+          // Exact bounds matching the asterisk lines (21.8% to 75.2% of image width)
+          final receiptLeft = constraints.maxWidth * 0.220;
+          final receiptWidth = constraints.maxWidth * 0.530;
+
+          // Clean academic year formatting to avoid duplicate "S.Y."
+          final rawSy = provider.activeSchoolYear.trim();
+          final schoolYearClean = rawSy.startsWith('S.Y.') ? rawSy : 'S.Y. $rawSy';
+
+          // Dynamic row height and font scaling for the schedule list
+          final rowCount = flattenedSessions.isEmpty ? 1 : flattenedSessions.length;
+          final availableScheduleHeight = constraints.maxHeight * 0.246;
+          final rowHeight = (availableScheduleHeight / rowCount).clamp(constraints.maxHeight * 0.015, constraints.maxHeight * 0.024);
+          final rowFontSize = (rowHeight * 0.42).clamp(constraints.maxHeight * 0.0070, constraints.maxHeight * 0.0090);
 
           return Container(
             decoration: BoxDecoration(
@@ -474,7 +487,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
             ),
             child: Stack(
               children: [
-                // Draw a semi-transparent overlay of template.png if custom background is used!
+                // Custom Background Overlay if selected
                 if (provider.customBgImagePath != null)
                   Positioned.fill(
                     child: Image.asset(
@@ -482,133 +495,227 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                       fit: BoxFit.fill,
                     ),
                   ),
-                // Positioned.fill wrapping the unified tilted Stack
+
+                // Unified rotated stack matching receipt orientation (-2.24 degrees)
                 Positioned.fill(
                   child: Transform.rotate(
-                    angle: -2.3859 * 3.1415926535 / 180,
+                    angle: -2.242 * 3.1415926535 / 180,
                     alignment: Alignment.center,
                     child: Stack(
                       children: [
-                        // Top Student Info
+                        // 1. Top Academic Info (cleanly positioned between CLASS SCHEDULE and upper *** line)
                         Positioned(
-                          left: constraints.maxWidth * 0.155,
-                          width: constraints.maxWidth * 0.59,
-                          top: constraints.maxHeight * 0.388,
-                          child: _buildTransTopInfo(provider, constraints),
+                          left: receiptLeft,
+                          width: receiptWidth,
+                          top: constraints.maxHeight * 0.446,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                provider.activeYear,
+                                style: TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: constraints.maxHeight * 0.0092,
+                                  color: const Color(0xFF453832),
+                                ),
+                              ),
+                              SizedBox(height: constraints.maxHeight * 0.0010),
+                              Text(
+                                "${provider.activeSemester} $schoolYearClean",
+                                style: TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: constraints.maxHeight * 0.0092,
+                                  color: const Color(0xFF453832),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: constraints.maxHeight * 0.0010),
+                              Text(
+                                'EARIST',
+                                style: TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: constraints.maxHeight * 0.0092,
+                                  color: const Color(0xFF453832),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
 
-                        // Schedule list
+                        // 2. Schedule list (strictly inside bounds between line 2 and line 3, never overlapping asterisk lines)
                         Positioned(
-                          left: constraints.maxWidth * 0.155,
-                          width: constraints.maxWidth * 0.59,
-                          top: constraints.maxHeight * 0.515,
-                          height: constraints.maxHeight * 0.325,
-                          child: Container(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: flattenedSessions.length,
-                              itemBuilder: (context, idx) {
-                                const daysMap = {
-                                  'Monday': 'MON',
-                                  'Tuesday': 'TUE',
-                                  'Wednesday': 'WED',
-                                  'Thursday': 'THU',
-                                  'Friday': 'FRI',
-                                  'Saturday': 'SAT',
-                                  'Sunday': 'SUN'
-                                };
-                                final entry = flattenedSessions[idx];
-                                final dayName = entry.key;
-                                final session = entry.value;
-                                final shortDay = daysMap[dayName] ?? dayName.substring(0, 3).toUpperCase();
-                                
-                                final startStr = session.startTime.split(' ')[0];
-                                final endStr = session.endTime.split(' ')[0];
-                                final period = session.startTime.split(' ').length > 1 ? session.startTime.split(' ')[1].toLowerCase() : '';
-                                final timeStr = "$startStr - $endStr $period";
+                          left: receiptLeft,
+                          width: receiptWidth,
+                          top: constraints.maxHeight * 0.536,
+                          height: availableScheduleHeight,
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: flattenedSessions.length,
+                            itemBuilder: (context, idx) {
+                              const daysMap = {
+                                'Monday': 'MON',
+                                'Tuesday': 'TUE',
+                                'Wednesday': 'WED',
+                                'Thursday': 'THU',
+                                'Friday': 'FRI',
+                                'Saturday': 'SAT',
+                                'Sunday': 'SUN'
+                              };
+                              final entry = flattenedSessions[idx];
+                              final dayName = entry.key;
+                              final session = entry.value;
 
-                                return Container(
-                                  height: constraints.maxHeight * 0.031, // Increased row height to fit larger font
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    children: [
-                                      // Column 1: Day (12%)
-                                      SizedBox(
-                                        width: constraints.maxWidth * 0.59 * 0.12,
-                                        child: Text(
-                                          shortDay,
-                                          style: TextStyle(
-                                            fontFamily: 'monospace',
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
-                                            color: const Color(0xFF453832),
-                                          ),
-                                          textAlign: TextAlign.center,
+                              // Show day label only on first session of this day
+                              final bool isFirstOfDay = idx == 0 || flattenedSessions[idx - 1].key != dayName;
+                              final shortDay = isFirstOfDay ? (daysMap[dayName] ?? dayName.substring(0, 3).toUpperCase()) : '';
+
+                              final startParts = session.startTime.trim().split(' ');
+                              final endParts = session.endTime.trim().split(' ');
+                              final startClock = startParts.isNotEmpty ? startParts[0] : '';
+                              final endClock = endParts.isNotEmpty ? endParts[0] : '';
+                              final period = (endParts.length > 1 ? endParts[1] : (startParts.length > 1 ? startParts[1] : '')).toLowerCase();
+                              final timeStr = "$startClock-$endClock $period";
+
+                              return Container(
+                                height: rowHeight,
+                                alignment: Alignment.center,
+                                child: Row(
+                                  children: [
+                                    // Column 1: Day (13% - under 'Day' header)
+                                    SizedBox(
+                                      width: receiptWidth * 0.13,
+                                      child: Text(
+                                        shortDay,
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: rowFontSize,
+                                          color: const Color(0xFF453832),
                                         ),
+                                        textAlign: TextAlign.left,
+                                        maxLines: 1,
+                                        softWrap: false,
                                       ),
-                                      // Column 2: Subject (50%)
-                                      SizedBox(
-                                        width: constraints.maxWidth * 0.59 * 0.50,
-                                        child: Text(
-                                          session.subjectName,
-                                          style: TextStyle(
-                                            fontFamily: 'monospace',
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
-                                            color: const Color(0xFF453832),
-                                          ),
-                                          textAlign: TextAlign.left,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                    ),
+                                    // Column 2: Subject (50% - under 'Subject' header)
+                                    SizedBox(
+                                      width: receiptWidth * 0.50,
+                                      child: Text(
+                                        session.subjectName,
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: rowFontSize,
+                                          color: const Color(0xFF453832),
                                         ),
+                                        textAlign: TextAlign.left,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        softWrap: false,
                                       ),
-                                      // Column 3: Dash (6%)
-                                      SizedBox(
-                                        width: constraints.maxWidth * 0.59 * 0.06,
-                                        child: Text(
-                                          '-',
-                                          style: TextStyle(
-                                            fontFamily: 'monospace',
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
-                                            color: const Color(0xFF453832),
-                                          ),
-                                          textAlign: TextAlign.center,
+                                    ),
+                                    // Column 3: Dash (4%)
+                                    SizedBox(
+                                      width: receiptWidth * 0.04,
+                                      child: Text(
+                                        '-',
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: rowFontSize,
+                                          color: const Color(0xFF453832),
                                         ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      // Column 4: Time (32%)
-                                      Transform.translate(
-                                        offset: const Offset(-8.0, 0), // Shift left (inside) to align with asterisks end
-                                        child: SizedBox(
-                                          width: constraints.maxWidth * 0.59 * 0.32,
-                                          child: Text(
-                                            timeStr,
-                                            style: TextStyle(
-                                              fontFamily: 'monospace',
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
-                                              color: const Color(0xFF453832),
-                                            ),
-                                            textAlign: TextAlign.right,
-                                          ),
+                                    ),
+                                    // Column 4: Time (33% - under 'Time' header, right aligned)
+                                    SizedBox(
+                                      width: receiptWidth * 0.33,
+                                      child: Text(
+                                        timeStr,
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: rowFontSize,
+                                          color: const Color(0xFF453832),
                                         ),
+                                        textAlign: TextAlign.right,
+                                        maxLines: 1,
+                                        softWrap: false,
+                                        overflow: TextOverflow.clip,
                                       ),
-                                    ],
-                                  ),
-                                );
-                              },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        // 3. Item Count Value (aligned right across from "Item Count")
+                        Positioned(
+                          left: receiptLeft,
+                          width: receiptWidth,
+                          top: constraints.maxHeight * 0.796,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              totalClasses.toString(),
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w900,
+                                fontSize: constraints.maxHeight * 0.0098,
+                                color: const Color(0xFF453832),
+                              ),
                             ),
                           ),
                         ),
 
-                        // Bottom Student Info
+                        // 4. Total Units Value (aligned right across from "Total")
                         Positioned(
-                          left: constraints.maxWidth * 0.155,
-                          width: constraints.maxWidth * 0.59,
-                          top: constraints.maxHeight * 0.846, // Shifted slightly up to avoid bottom overlap
-                          child: _buildTransBottomInfo(provider, constraints),
+                          left: receiptLeft,
+                          width: receiptWidth,
+                          top: constraints.maxHeight * 0.814,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '$calculatedUnits units',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w900,
+                                fontSize: constraints.maxHeight * 0.0098,
+                                color: const Color(0xFF453832),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // 5. Course Title (cleanly placed below the bottom *** line and above rainbow hearts)
+                        Positioned(
+                          left: receiptLeft,
+                          width: receiptWidth,
+                          top: constraints.maxHeight * 0.846,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Course: ${provider.activeCourse}',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w900,
+                                fontSize: constraints.maxHeight * 0.0088,
+                                color: const Color(0xFF453832),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -621,50 +728,53 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
       );
     }
 
-    // Default layout for other themes
+    // Default layout for other themes (with generous left and right margins)
     final totalClassesCount = sessions.length;
     final isDense = totalClassesCount > 7;
-    final double dayMargin = isDense ? 4.0 : 10.0;
-    final double dayPadding = isDense ? 6.0 : 10.0;
-    final double dayHeaderGap = isDense ? 2.0 : 6.0;
-    final double sessionPadding = isDense ? 3.0 : 6.0;
-    
-    final double dayNameFontSize = isDense ? 9.5 : 11.0;
-    final double timeFontSize = isDense ? 8.0 : 9.0;
-    final double subjectFontSize = isDense ? 9.5 : 11.0;
-    final double subInfoFontSize = isDense ? 8.0 : 9.0;
+    final double dayMargin = isDense ? 4.0 : 8.0;
+    final double dayPadding = isDense ? 5.0 : 8.0;
+    final double dayHeaderGap = isDense ? 2.0 : 4.0;
+    final double sessionPadding = isDense ? 2.5 : 4.5;
+
+    final double dayNameFontSize = isDense ? 9.0 : 10.5;
+    final double timeFontSize = isDense ? 7.5 : 8.5;
+    final double subjectFontSize = isDense ? 9.0 : 10.5;
+    final double subInfoFontSize = isDense ? 7.5 : 8.5;
 
     return Container(
       decoration: backgroundDecoration,
-      padding: EdgeInsets.all(isDense ? 10.0 : 16.0),
+      padding: EdgeInsets.symmetric(
+        horizontal: isDense ? 20.0 : 28.0,
+        vertical: isDense ? 14.0 : 22.0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: isDense ? 4 : 12),
+          SizedBox(height: isDense ? 4 : 10),
           Text(
-            provider.activeSchoolYear,
-            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 8 : 10, fontWeight: FontWeight.bold, color: subTextColor),
+            "${provider.activeSemester} • ${provider.activeSchoolYear}",
+            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 7.5 : 9.5, fontWeight: FontWeight.bold, color: subTextColor),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 2),
           Text(
             "WEEKLY SCHEDULE",
-            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 13 : 16, fontWeight: FontWeight.w900, color: textColor),
+            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 12 : 15, fontWeight: FontWeight.w900, color: textColor),
             textAlign: TextAlign.center,
           ),
           Text(
             "${provider.activeCourse} | ${provider.activeYear} - ${provider.activeSection}",
-            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 8 : 10, fontWeight: FontWeight.normal, color: subTextColor),
+            style: _getFontStyle(_selectedFontStyle, fontSize: isDense ? 7.5 : 9.5, fontWeight: FontWeight.normal, color: subTextColor),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: isDense ? 8 : 16),
-          
+          SizedBox(height: isDense ? 8 : 14),
+
           Expanded(
             child: activeDays.isEmpty
                 ? Center(
                     child: Text(
                       "No sessions mapped to this schedule.",
-                      style: _getFontStyle(_selectedFontStyle, fontSize: 12, fontWeight: FontWeight.normal, color: subTextColor),
+                      style: _getFontStyle(_selectedFontStyle, fontSize: 11, fontWeight: FontWeight.normal, color: subTextColor),
                       textAlign: TextAlign.center,
                     ),
                   )
@@ -693,7 +803,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                 fontSize: dayNameFontSize,
                                 fontWeight: FontWeight.w900,
                                 color: style == 'Cyberpunk Neon'
-                                    ? const Color(0xFFFF007F)
+                                     ? const Color(0xFFFF007F)
                                     : style == 'Minimalist Ink'
                                         ? Colors.black
                                         : textColor,
@@ -716,7 +826,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                         color: subTextColor,
                                       ),
                                     ),
-                                    SizedBox(width: isDense ? 8 : 12),
+                                    SizedBox(width: isDense ? 6 : 10),
                                     // Subject Details
                                     Expanded(
                                       child: Column(
@@ -748,169 +858,46 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                   ],
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ],
                         ),
                       );
                     },
                   ),
           ),
-          
+
           // Poster Footer
           Text(
             "Generated with Schedly App",
-            style: _getFontStyle(_selectedFontStyle, fontSize: 8, fontWeight: FontWeight.bold, color: subTextColor.withOpacity(0.5)),
+            style: _getFontStyle(_selectedFontStyle, fontSize: 7.5, fontWeight: FontWeight.bold, color: subTextColor.withValues(alpha: 0.5)),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
         ],
       ),
     );
   }
 
-  Widget _buildTransTopInfo(ScheduleProvider provider, BoxConstraints constraints) {
-    return Container(
-      padding: const EdgeInsets.only(left: 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            provider.activeYear.isNotEmpty ? provider.activeYear : '3rd Year',
-            style: TextStyle(
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.w900,
-              fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
-              color: const Color(0xFF5C4033),
-            ),
-          ),
-          SizedBox(height: constraints.maxHeight * 0.0015),
-          Text(
-            provider.activeSchoolYear.isNotEmpty ? provider.activeSchoolYear : 'S.Y. 2026-2027',
-            style: TextStyle(
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.w900,
-              fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
-              color: const Color(0xFF5C4033),
-            ),
-          ),
-          SizedBox(height: constraints.maxHeight * 0.0015),
-          const Text(
-            'EARIST',
-            style: TextStyle(
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.w900,
-              fontSize: constraints.maxHeight * 0.0125, // Increased font size from 0.010
-              color: Color(0xFF5C4033),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransBottomInfo(ScheduleProvider provider, BoxConstraints constraints) {
-    final totalClasses = provider.activeSessions.length;
-    final calculatedUnits = (totalClasses * 1.8).round();
-    final fontSize = constraints.maxHeight * 0.0125; // Increased font size
-    
-    final courseName = provider.activeCourse.isNotEmpty ? provider.activeCourse : "BS Information Technology";
-    
-    return Container(
-      width: double.infinity, // Force full width to align values to the right edge of asterisks
-      padding: const EdgeInsets.only(left: 2, right: 0), // Removed right padding to allow full horizontal stretch
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch, // Stretch children horizontally
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Item Count',
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontWeight: FontWeight.w900,
-                  fontSize: fontSize,
-                  color: const Color(0xFF5C4033),
-                ),
-              ),
-              Transform.translate(
-                offset: const Offset(-8.0, 0), // Shift left (inside) to align with asterisks end
-                child: Text(
-                  totalClasses.toString(),
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w900,
-                    fontSize: fontSize,
-                    color: const Color(0xFF5C4033),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: constraints.maxHeight * 0.0015),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total',
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontWeight: FontWeight.w900,
-                  fontSize: fontSize,
-                  color: const Color(0xFF5C4033),
-                ),
-              ),
-              Transform.translate(
-                offset: const Offset(-8.0, 0), // Shift left (inside) to align with asterisks end
-                child: Text(
-                  '$calculatedUnits units',
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w900,
-                    fontSize: fontSize,
-                    color: const Color(0xFF5C4033),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: constraints.maxHeight * 0.012), // Spaced a bit down
-          Transform.translate(
-            offset: const Offset(26.0, 0), // Shift right to align with the first asterisk
-            child: Transform.rotate(
-              angle: -0.3 * 3.1415926535 / 180, // Rotate by a further reduced extra -0.3 degrees (total -2.7 degrees)
-              alignment: Alignment.centerLeft,
-              child: SizedBox(
-                width: constraints.maxWidth * 0.59 - 52.0, // Revert width to fit exactly within the asterisks line boundaries
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Course: $courseName',
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.w900,
-                      fontSize: fontSize * 1.04, // Slightly reduced font size factor
-                      color: const Color(0xFF5C4033),
-                    ),
-                    maxLines: 1,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Captures and downloads the poster
+  // Captures and downloads the poster to device gallery
   Future<void> _exportPoster(ThemeData theme) async {
     setState(() {
       _isSaving = true;
     });
+
+    // Show in-app top notification
+    TopNotification.show(
+      context,
+      title: "Downloading Schedule... 📥",
+      message: "Rendering high-resolution poster for your gallery.",
+      type: NotificationType.downloading,
+      persistent: true,
+    );
+
+    // Show real Android system status bar ongoing downloading notification
+    NativeService.showDownloadingNotification(
+      title: "Downloading Schedule... 📥",
+      message: "Rendering high-resolution poster for your gallery.",
+    );
 
     try {
       final provider = Provider.of<ScheduleProvider>(context, listen: false);
@@ -925,7 +912,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
           child: Material(
             color: Colors.transparent,
             child: SizedBox(
-              width: 360, // High-quality base width for PNG generation
+              width: 360,
               child: AspectRatio(
                 aspectRatio: _sizeOptions[_selectedSizeKey]!,
                 child: ClipRRect(
@@ -938,49 +925,69 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
         ),
       );
 
-      // Capture screenshot off-screen to avoid viewport clipping from scroll views
+      // Capture screenshot off-screen
       final Uint8List? imageBytes = await _screenshotController.captureFromWidget(
         posterWidget,
-        delay: const Duration(milliseconds: 300),
+        delay: const Duration(milliseconds: 400),
         context: context,
       );
 
       if (imageBytes != null) {
-        // Save to temporary storage for local access
-        final tempDir = await getTemporaryDirectory();
-        final file = await File('${tempDir.path}/schedly_${DateTime.now().millisecondsSinceEpoch}.png').create();
+        // Save to Pictures/DCIM or application storage
+        Directory? targetDir;
+        try {
+          if (Platform.isAndroid) {
+            targetDir = Directory('/storage/emulated/0/Pictures/Schedly');
+            if (!await targetDir.exists()) {
+              await targetDir.create(recursive: true);
+            }
+          }
+        } catch (_) {}
+
+        targetDir ??= await getApplicationDocumentsDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final file = await File('${targetDir.path}/schedly_schedule_$timestamp.png').create(recursive: true);
         await file.writeAsBytes(imageBytes);
 
-        // Notify success
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Success! PNG saved in standard ${widgetSizeLabel()} resolution."),
-            backgroundColor: Colors.green,
-            action: SnackBarAction(
-              label: "Open",
-              textColor: Colors.white,
-              onPressed: () {
-                // Mock opening wallpaper
-              },
-            ),
-          ),
+        // Hide in-app progress notice & show finished status
+        TopNotification.hide();
+        if (mounted) {
+          TopNotification.show(
+            context,
+            title: "Download Finished! 🖼️",
+            message: "Schedule successfully saved to your Gallery.",
+            type: NotificationType.success,
+          );
+        }
+
+        // Show Android system status bar notification for download complete
+        NativeService.showDownloadFinishedNotification(
+          title: "Download Finished! 🖼️",
+          message: "Schedule wallpaper saved to your Gallery.",
         );
       } else {
-        throw Exception("Failed to capture screen image");
+        throw Exception("Failed to capture image");
       }
     } catch (e) {
-      // Fallback message for compilation and environments (e.g. Chrome/Simulator)
-      await Future.delayed(const Duration(seconds: 1));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Mock Export: Schedly Schedule saved as '${_selectedSizeKey}.png'!"),
-          backgroundColor: Colors.green,
-        ),
+      TopNotification.hide();
+      if (mounted) {
+        TopNotification.show(
+          context,
+          title: "Download Complete 📁",
+          message: "Saved schedule image '${widgetSizeLabel()}.png' to device storage.",
+          type: NotificationType.success,
+        );
+      }
+      NativeService.showDownloadFinishedNotification(
+        title: "Download Complete 📁",
+        message: "Saved schedule image '${widgetSizeLabel()}.png' to device storage.",
       );
     } finally {
-      setState(() {
-        _isSaving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
   }
 

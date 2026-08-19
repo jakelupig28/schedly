@@ -1,6 +1,7 @@
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/schedule_provider.dart';
+import '../widgets/top_notification.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
@@ -20,15 +21,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _birthdateController = TextEditingController();
   final _ageController = TextEditingController();
   final _emailController = TextEditingController();
-  final _courseController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
+
+  late String _selectedCourse;
   String _selectedYear = '1st Year';
   final List<String> _years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year+'];
   DateTime? _selectedBirthdate;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCourse = ScheduleProvider.availableCourses.first;
+  }
 
   @override
   void dispose() {
@@ -38,7 +45,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _birthdateController.dispose();
     _ageController.dispose();
     _emailController.dispose();
-    _courseController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -48,47 +54,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Back navigation row to Onboarding
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: isDark ? Colors.white : Colors.black,
-                        size: 20,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top-left Back navigation button
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0, top: 4.0),
+              child: IconButton(
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: isDark ? Colors.white : Colors.black,
+                  size: 22,
+                ),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                  );
+                },
+                tooltip: "Back",
+              ),
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 12.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Text(
+                        "Create Account",
+                        style: theme.textTheme.displayLarge?.copyWith(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
                       ),
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                
-                // Header
-                Text(
-                  "Create Account",
-                  style: theme.textTheme.displayLarge?.copyWith(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
-                ),
                 const SizedBox(height: 12),
                 Text(
                   "Join Schedly and organize your classes.",
@@ -98,13 +106,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     height: 1.6,
                   ),
                 ),
-                
                 const SizedBox(height: 36),
-                
+
                 // First Name Field
                 TextFormField(
                   controller: _firstNameController,
                   textCapitalization: TextCapitalization.words,
+                  inputFormatters: [FirstLetterCapitalizationFormatter()],
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: "First Name",
@@ -125,13 +133,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                
                 const SizedBox(height: 16),
 
                 // Middle Name Field
                 TextFormField(
                   controller: _middleNameController,
                   textCapitalization: TextCapitalization.words,
+                  inputFormatters: [FirstLetterCapitalizationFormatter()],
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: "Middle Name (Optional)",
@@ -146,13 +154,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-                
                 const SizedBox(height: 16),
 
                 // Surname Field
                 TextFormField(
                   controller: _surnameController,
                   textCapitalization: TextCapitalization.words,
+                  inputFormatters: [FirstLetterCapitalizationFormatter()],
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: "Surname",
@@ -173,7 +181,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                
                 const SizedBox(height: 16),
 
                 // Birthdate + Age Fields Row
@@ -242,9 +249,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: 16),
-                
+
                 // Email Field
                 TextFormField(
                   controller: _emailController,
@@ -272,33 +278,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                
                 const SizedBox(height: 16),
-                
-                // Course Field
-                TextFormField(
-                  controller: _courseController,
+
+                // Course Dropdown Field
+                DropdownButtonFormField<String>(
+                  value: _selectedCourse,
+                  isExpanded: true,
+                  icon: Icon(Icons.keyboard_arrow_down_rounded, color: isDark ? Colors.white70 : Colors.black87),
+                  dropdownColor: isDark ? const Color(0xFF1F1C3F) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  elevation: 8,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
-                    hintText: "Course / Major",
-                    hintStyle: const TextStyle(color: Colors.grey),
                     prefixIcon: const Icon(Icons.book_outlined, size: 20, color: Colors.grey),
                     filled: true,
                     fillColor: isDark ? const Color(0xFF23223F) : const Color(0xFFF3F4F6),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return "Course is required";
+                  items: ScheduleProvider.availableCourses.map((String course) {
+                    return DropdownMenuItem(
+                      value: course,
+                      child: Text(course, overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedCourse = value;
+                      });
                     }
-                    return null;
                   },
                 ),
-                
                 const SizedBox(height: 16),
 
                 // Year Level Dropdown
@@ -333,9 +347,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     }
                   },
                 ),
-                
                 const SizedBox(height: 16),
-                
+
                 // Password Field
                 TextFormField(
                   controller: _passwordController,
@@ -375,9 +388,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                
                 const SizedBox(height: 16),
-                
+
                 // Confirm Password Field
                 TextFormField(
                   controller: _confirmPasswordController,
@@ -417,9 +429,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                
                 const SizedBox(height: 36),
-                
+
                 // Register Button
                 ElevatedButton(
                   onPressed: _handleRegister,
@@ -440,9 +451,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-                
                 const SizedBox(height: 24),
-                
+
                 // Login Route
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -477,8 +487,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
-    );
-  }
+    ],
+  ),
+),
+);
+}
 
   String _capitalize(String text) {
     if (text.trim().isEmpty) return '';
@@ -519,8 +532,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() {
         _selectedBirthdate = picked;
         _birthdateController.text = "${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}/${picked.year}";
-        
-        // Calculate age
+
         DateTime today = DateTime.now();
         int age = today.year - picked.year;
         if (today.month < picked.month || (today.month == picked.month && today.day < picked.day)) {
@@ -546,16 +558,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         birthdate: _birthdateController.text,
         age: _ageController.text,
         email: _emailController.text,
-        course: _courseController.text,
+        course: _selectedCourse,
         year: _selectedYear,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Account registered: Welcome, $fullName!"),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-        ),
+      TopNotification.show(
+        context,
+        title: "Welcome, $fullName! 🎉",
+        message: "Your Schedly account has been registered successfully.",
+        type: NotificationType.success,
       );
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),

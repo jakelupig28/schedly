@@ -490,11 +490,11 @@
 
         .slider-icon {
             width: 100%;
-            height: 340px;
+            height: 420px;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
             background: none !important;
             border-radius: 0;
         }
@@ -511,6 +511,7 @@
             margin-bottom: 12px;
             color: var(--text-primary);
             line-height: 1.25;
+            text-align: left;
         }
 
         .slider-desc {
@@ -518,6 +519,7 @@
             color: var(--text-secondary);
             line-height: 1.6;
             margin-bottom: 16px;
+            text-align: left;
         }
 
         .onboard-bottom {
@@ -2620,6 +2622,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyDyUpEJhmf-KjxiGI4j_AFQasJRrHxXKT8",
             authDomain: "schedly-751cb.firebaseapp.com",
+            databaseURL: "https://schedly-751cb-default-rtdb.firebaseio.com",
             projectId: "schedly-751cb",
             storageBucket: "schedly-751cb.firebasestorage.app",
             messagingSenderId: "832199980646",
@@ -2629,6 +2632,32 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const database = firebase.database();
+
+        // Listen to Auth State and sync Realtime Database profile
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                database.ref('users/' + user.uid).once('value')
+                    .then((snapshot) => {
+                        const data = snapshot.val();
+                        if (data) {
+                            userProfile = { ...userProfile, ...data, uid: user.uid, email: user.email || data.email };
+                            localStorage.setItem('schedly_user_profile', JSON.stringify(userProfile));
+                            const greetEl = document.getElementById('home-greeting');
+                            const courseEl = document.getElementById('home-course-display');
+                            if (greetEl && userProfile.firstName) greetEl.innerText = `Hello, ${userProfile.firstName}!`;
+                            if (courseEl && userProfile.course) courseEl.innerText = userProfile.course;
+                        }
+                    })
+                    .catch((err) => console.warn("Initial RTDB fetch:", err));
+            } else {
+                const cached = localStorage.getItem('schedly_user_profile');
+                if (cached) {
+                    try {
+                        userProfile = { ...userProfile, ...JSON.parse(cached) };
+                    } catch (e) {}
+                }
+            }
+        });
 
         // Modern Toast Popup Notification System (Replaces native browser window.alert)
         function showToast(message, type = 'info') {
@@ -3122,32 +3151,35 @@
                 course,
                 gender,
                 year,
-                semester
+                semester,
+                updatedAt: new Date().toISOString()
             };
 
-            showToast("Saving changes...", "info");
+            // Save locally first for instant feedback and offline persistence
+            localStorage.setItem('schedly_user_profile', JSON.stringify(updatedProfile));
+            userProfile = updatedProfile;
+
+            const greetEl = document.getElementById('home-greeting');
+            const courseEl = document.getElementById('home-course-display');
+            if (greetEl) greetEl.innerText = `Hello, ${firstName}!`;
+            if (courseEl) courseEl.innerText = course;
+
+            showToast("Saving changes to Realtime Database...", "info");
 
             const currentUser = auth.currentUser;
             if (currentUser) {
-                database.ref('users/' + currentUser.uid).set(updatedProfile)
+                database.ref('users/' + currentUser.uid).update(updatedProfile)
                     .then(() => {
-                        userProfile = updatedProfile;
-                        
-                        document.getElementById('home-greeting').innerText = `Hello, ${firstName}!`;
-                        document.getElementById('home-course-display').innerText = course;
-
-                        showToast("Profile changes saved successfully!", "success");
+                        showToast("Profile changes saved to Firebase! ✨", "success");
                         navigateTo('screen-home');
                     })
                     .catch((error) => {
                         console.error("Database update error:", error);
-                        showToast("Failed to update database profile: " + error.message, 'error');
+                        showToast("Saved locally (Firebase RTDB: " + error.message + ")", 'error');
+                        navigateTo('screen-home');
                     });
             } else {
-                userProfile = updatedProfile;
-                document.getElementById('home-greeting').innerText = `Hello, ${firstName}!`;
-                document.getElementById('home-course-display').innerText = course;
-                showToast("Profile updated locally (offline)!", "success");
+                showToast("Profile updated locally! (Log in with Firebase to sync)", "success");
                 navigateTo('screen-home');
             }
         }

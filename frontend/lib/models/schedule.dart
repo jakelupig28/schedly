@@ -82,18 +82,20 @@ class ClassSession {
 
 class ScheduleHistoryItem {
   final String id;
-  final String schoolYear; // e.g. "2025-2026"
-  final String course;     // e.g. "BS Computer Science"
+  final String schoolYear; // e.g. "S.Y. 2026-2027"
+  final String semester;   // e.g. "1st Semester", "2nd Semester", "Summer"
+  final String course;     // e.g. "BS Information Technology"
   final String year;       // e.g. "3rd Year"
   final String section;    // e.g. "Section A"
   final List<ClassSession> sessions;
-  final String themeStyle; // e.g. "Pastel Sky", "Cyberpunk Neon", etc.
+  final String themeStyle; // e.g. "Pastel Sky", "Sticker Template", etc.
   final List<int> bgColors; // List of hex integers for gradient backgrounds
   final DateTime createdAt;
 
   ScheduleHistoryItem({
     required this.id,
     required this.schoolYear,
+    this.semester = '1st Semester',
     required this.course,
     required this.year,
     required this.section,
@@ -103,10 +105,13 @@ class ScheduleHistoryItem {
     required this.createdAt,
   });
 
+  int get totalUnits => (sessions.length * 1.8).round();
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'schoolYear': schoolYear,
+      'semester': semester,
       'course': course,
       'year': year,
       'section': section,
@@ -120,14 +125,15 @@ class ScheduleHistoryItem {
   factory ScheduleHistoryItem.fromMap(Map<String, dynamic> map) {
     return ScheduleHistoryItem(
       id: map['id'] ?? '',
-      schoolYear: map['schoolYear'] ?? '',
-      course: map['course'] ?? '',
-      year: map['year'] ?? '',
-      section: map['section'] ?? '',
+      schoolYear: map['schoolYear'] ?? 'S.Y. 2026-2027',
+      semester: map['semester'] ?? '1st Semester',
+      course: map['course'] ?? 'BS Information Technology',
+      year: map['year'] ?? '1st Year',
+      section: map['section'] ?? 'Section A',
       sessions: List<ClassSession>.from(
         (map['sessions'] as List<dynamic>? ?? []).map((x) => ClassSession.fromMap(x as Map<String, dynamic>)),
       ),
-      themeStyle: map['themeStyle'] ?? 'Pastel Sky',
+      themeStyle: map['themeStyle'] ?? 'Sticker Template',
       bgColors: List<int>.from(map['bgColors'] ?? [0xFF6C63FF, 0xFF3F3D56]),
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? DateTime.now().millisecondsSinceEpoch),
     );
@@ -136,4 +142,31 @@ class ScheduleHistoryItem {
   String toJson() => json.encode(toMap());
 
   factory ScheduleHistoryItem.fromJson(String source) => ScheduleHistoryItem.fromMap(json.decode(source));
+
+  ScheduleHistoryItem copyWith({
+    String? id,
+    String? schoolYear,
+    String? semester,
+    String? course,
+    String? year,
+    String? section,
+    List<ClassSession>? sessions,
+    String? themeStyle,
+    List<int>? bgColors,
+    DateTime? createdAt,
+  }) {
+    return ScheduleHistoryItem(
+      id: id ?? this.id,
+      schoolYear: schoolYear ?? this.schoolYear,
+      semester: semester ?? this.semester,
+      course: course ?? this.course,
+      year: year ?? this.year,
+      section: section ?? this.section,
+      sessions: sessions ?? this.sessions,
+      themeStyle: themeStyle ?? this.themeStyle,
+      bgColors: bgColors ?? this.bgColors,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
+

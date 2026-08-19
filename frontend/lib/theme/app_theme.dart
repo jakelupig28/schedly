@@ -1,4 +1,4 @@
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 
 class AppTheme {
   // Brand colors
@@ -44,15 +44,13 @@ class AppTheme {
         primary: primaryLight,
         secondary: secondaryLight,
         tertiary: accentLight,
-        background: backgroundLight,
         surface: surfaceLight,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
-        onBackground: textPrimaryLight,
         onSurface: textPrimaryLight,
       ),
       scaffoldBackgroundColor: backgroundLight,
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surfaceLight,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -77,7 +75,7 @@ class AppTheme {
           backgroundColor: primaryLight,
           foregroundColor: Colors.white,
           elevation: 2,
-          shadowColor: primaryLight.withOpacity(0.3),
+          shadowColor: primaryLight.withValues(alpha: 0.3),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -128,9 +126,9 @@ class AppTheme {
       canvasColor: surfaceLight,
       dropdownMenuTheme: DropdownMenuThemeData(
         menuStyle: MenuStyle(
-          backgroundColor: MaterialStateProperty.all(surfaceLight),
-          elevation: MaterialStateProperty.all(8),
-          shape: MaterialStateProperty.all(
+          backgroundColor: WidgetStateProperty.all(surfaceLight),
+          elevation: WidgetStateProperty.all(8),
+          shape: WidgetStateProperty.all(
             RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: const BorderSide(color: Color(0xFFE2E4ED), width: 1.5),
@@ -156,15 +154,13 @@ class AppTheme {
         primary: primaryDark,
         secondary: secondaryDark,
         tertiary: accentDark,
-        background: backgroundDark,
         surface: surfaceDark,
         onPrimary: Colors.black,
         onSecondary: Colors.black,
-        onBackground: textPrimaryDark,
         onSurface: textPrimaryDark,
       ),
       scaffoldBackgroundColor: backgroundDark,
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surfaceDark,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -189,7 +185,7 @@ class AppTheme {
           backgroundColor: primaryDark,
           foregroundColor: Colors.black,
           elevation: 2,
-          shadowColor: primaryDark.withOpacity(0.3),
+          shadowColor: primaryDark.withValues(alpha: 0.3),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -216,7 +212,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Color(0xFF252347),
+        fillColor: const Color(0xFF252347),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -240,9 +236,9 @@ class AppTheme {
       canvasColor: surfaceDark,
       dropdownMenuTheme: DropdownMenuThemeData(
         menuStyle: MenuStyle(
-          backgroundColor: MaterialStateProperty.all(surfaceDark),
-          elevation: MaterialStateProperty.all(8),
-          shape: MaterialStateProperty.all(
+          backgroundColor: WidgetStateProperty.all(surfaceDark),
+          elevation: WidgetStateProperty.all(8),
+          shape: WidgetStateProperty.all(
             RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: const BorderSide(color: Color(0xFF2D2A4A), width: 1.5),

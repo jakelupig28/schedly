@@ -1,4 +1,7 @@
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/schedule_provider.dart';
+import '../widgets/top_notification.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
@@ -15,6 +18,21 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _rememberMe = false;
+  bool _isInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      final provider = Provider.of<ScheduleProvider>(context, listen: false);
+      if (provider.rememberMe && provider.savedEmail.isNotEmpty) {
+        _emailController.text = provider.savedEmail;
+        _rememberMe = true;
+      }
+      _isInitialized = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -27,37 +45,88 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final provider = Provider.of<ScheduleProvider>(context);
     
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Back navigation row to Onboarding
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: isDark ? Colors.white : Colors.black,
-                        size: 20,
-                      ),
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-                        );
-                      },
-                    ),
-                  ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top-left Back navigation button
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0, top: 4.0),
+              child: IconButton(
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: isDark ? Colors.white : Colors.black,
+                  size: 22,
                 ),
-                const SizedBox(height: 30),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                  );
+                },
+                tooltip: "Back",
+              ),
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 12.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 5-Day Inactivity Session Expired Banner
+                      if (provider.sessionExpiredNotice) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.amber.withValues(alpha: 0.4), width: 1.5),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.timer_off_outlined, color: Colors.amber, size: 22),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Session Expired",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Colors.amber,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      "You have been inactive for 5 or more days. Please log in again to continue.",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark ? Colors.white70 : Colors.black87,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              InkWell(
+                                onTap: () => provider.clearSessionExpiredNotice(),
+                                child: const Icon(Icons.close, size: 18, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                 
                 // Welcome Back Header
                 Text(
@@ -78,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 48),
+                const SizedBox(height: 36),
                 
                 // Email Field
                 TextFormField(
@@ -168,24 +237,69 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 const SizedBox(height: 12),
                 
-                // Forgot Password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Feature in development: Password reset link requested!")),
-                      );
-                    },
-                    child: Text(
-                      "Forgot Password?",
-                      style: TextStyle(
-                        color: isDark ? Colors.white70 : Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                // Remember Me & Forgot Password Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Remember Me Checkbox
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: Checkbox(
+                            value: _rememberMe,
+                            activeColor: const Color(0xFF6C63FF),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                _rememberMe = val ?? false;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _rememberMe = !_rememberMe;
+                            });
+                          },
+                          child: Text(
+                            "Remember Me",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Forgot Password
+                    TextButton(
+                      onPressed: () {
+                        TopNotification.show(
+                          context,
+                          title: "Password Reset",
+                          message: "Password reset link requested for your email.",
+                          type: NotificationType.info,
+                        );
+                      },
+                      child: Text(
+                        "Forgot Password?",
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
                 
                 const SizedBox(height: 24),
@@ -213,7 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 const SizedBox(height: 24),
                 
-                // Sign Up Route (Navigates to onboarding screen, Slide 3)
+                // Sign Up Route
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -249,21 +363,26 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
+    ],
+  ),
+),
+);
+}
 
-  void _handleLogin() {
+  void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Welcome back, ${_emailController.text.split('@').first}!"),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-        ),
-      );
+      final email = _emailController.text.trim();
+      final provider = Provider.of<ScheduleProvider>(context, listen: false);
+      await provider.loginUser(email, _rememberMe);
+
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(
+          builder: (_) => const HomeScreen(showWelcomeBackDialog: true),
+        ),
       );
     }
   }
 }
+

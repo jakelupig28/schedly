@@ -112,6 +112,70 @@ app.get('/api/schedules', authenticateUser, async (req, res) => {
   }
 });
 
+/**
+ * Protected Endpoint: Save/Update user profile data in Firebase Realtime Database
+ * POST /api/profile
+ */
+app.post('/api/profile', authenticateUser, async (req, res) => {
+  const { profile } = req.body;
+  const uid = req.user.uid;
+
+  if (!profile) {
+    return res.status(400).json({ error: 'Profile data is required' });
+  }
+
+  try {
+    // Save to Realtime Database at path: /users/<uid>
+    const userRef = db.ref(`users/${uid}`);
+    await userRef.update({
+      ...profile,
+      uid,
+      updatedAt: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile successfully saved to Firebase Realtime Database.'
+    });
+  } catch (error) {
+    console.error('Database write error:', error);
+    res.status(500).json({ 
+      error: 'Failed to save profile data to database',
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * Protected Endpoint: Retrieve user profile data from Firebase Realtime Database
+ * GET /api/profile
+ */
+app.get('/api/profile', authenticateUser, async (req, res) => {
+  const uid = req.user.uid;
+
+  try {
+    // Fetch from Realtime Database at path: /users/<uid>
+    const userRef = db.ref(`users/${uid}`);
+    const snapshot = await userRef.once('value');
+    const profile = snapshot.val();
+
+    if (!profile) {
+      return res.status(404).json({ message: 'No profile found for this user' });
+    }
+
+    res.json({
+      success: true,
+      profile
+    });
+  } catch (error) {
+    console.error('Database read error:', error);
+    res.status(500).json({ 
+      error: 'Failed to retrieve profile data from database',
+      details: error.message 
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`=================================================`);
   console.log(`🚀 Schedly Server running on port ${PORT}`);

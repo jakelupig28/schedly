@@ -1121,10 +1121,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void _showSubjectDetailModal(BuildContext context, ClassSession session, ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = Color(session.colorValue);
-    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: isDark ? const Color(0xFF1E1A3C) : Colors.white,
       shape: const RoundedRectangleBorder(
@@ -1132,8 +1132,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
       builder: (ctx) {
         return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(24, 16, 24, 28 + (bottomInset > 0 ? bottomInset : 8)),
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,

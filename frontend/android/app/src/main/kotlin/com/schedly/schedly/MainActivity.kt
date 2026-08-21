@@ -7,11 +7,16 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.pdf.PdfRenderer
 import android.os.Build
+import android.os.ParcelFileDescriptor
 import androidx.core.app.NotificationCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.schedly.app/native"
@@ -25,8 +30,54 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
+                "renderPdfToImages" -> {
+                    val pdfPath = call.argument<String>("pdfPath")
+                    if (pdfPath != null) {
+                        java.util.concurrent.Executors.newSingleThreadExecutor().execute {
+                            val file = File(pdfPath)
+                            if (file.exists()) {
+                                val imagePaths = mutableListOf<String>()
+                                try {
+                                    val fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                                    val pdfRenderer = PdfRenderer(fileDescriptor)
+                                    val pageCount = pdfRenderer.pageCount
+                                    val outputDir = File(cacheDir, "pdf_renders").apply { mkdirs() }
+
+                                    for (i in 0 until minOf(pageCount, 2)) {
+                                        val page = pdfRenderer.openPage(i)
+                                        val maxDim = maxOf(page.width, page.height)
+                                        val scale = if (maxDim > 0) (2200f / maxDim).coerceIn(1.8f, 3.0f) else 2.2f
+                                        val width = (page.width * scale).toInt()
+                                        val height = (page.height * scale).toInt()
+                                        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                                        bitmap.eraseColor(android.graphics.Color.WHITE)
+                                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                                        page.close()
+
+                                        val outputFile = File(outputDir, "pdf_page_${System.currentTimeMillis()}_$i.jpg")
+                                        val out = FileOutputStream(outputFile)
+                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                                        out.flush()
+                                        out.close()
+                                        bitmap.recycle()
+                                        imagePaths.add(outputFile.absolutePath)
+                                    }
+                                    pdfRenderer.close()
+                                    fileDescriptor.close()
+                                    runOnUiThread { result.success(imagePaths) }
+                                } catch (e: Exception) {
+                                    runOnUiThread { result.error("PDF_ERROR", e.message, null) }
+                                }
+                            } else {
+                                runOnUiThread { result.error("FILE_NOT_FOUND", "PDF file does not exist", null) }
+                            }
+                        }
+                    } else {
+                        result.error("INVALID_ARGS", "pdfPath is required", null)
+                    }
+                }
                 "showDownloadingNotification" -> {
-                    val title = call.argument<String>("title") ?: "Downloading Schedule... 📥"
+                    val title = call.argument<String>("title") ?: "Downloading Schedule..."
                     val message = call.argument<String>("message") ?: "Rendering high-resolution poster for your gallery."
                     showDownloadingNotification(title, message)
                     result.success(true)
@@ -50,7 +101,7 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
                 "showDownloadFinishedNotification" -> {
-                    val title = call.argument<String>("title") ?: "Download Complete 🖼️"
+                    val title = call.argument<String>("title") ?: "Download Complete"
                     val message = call.argument<String>("message") ?: "Schedule wallpaper saved to your Gallery."
                     showDownloadFinishedNotification(title, message)
                     result.success(true)
@@ -69,6 +120,30 @@ class MainActivity : FlutterActivity() {
                     )
                     for (id in widgetIds) {
                         ScheduleAppWidgetProvider.updateAppWidget(this, widgetManager, id)
+                    }
+                    result.success(true)
+                }
+                "requestAppPermissions" -> {
+                    val permissionsToRequest = mutableListOf<String>()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        permissionsToRequest.add(android.Manifest.permission.POST_NOTIFICATIONS)
+                        permissionsToRequest.add(android.Manifest.permission.READ_MEDIA_IMAGES)
+                    } else {
+                        permissionsToRequest.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                        permissionsToRequest.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    }
+                    permissionsToRequest.add(android.Manifest.permission.CAMERA)
+
+                    val notGranted = permissionsToRequest.filter {
+                        androidx.core.content.ContextCompat.checkSelfPermission(this, it) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                    }
+
+                    if (notGranted.isNotEmpty()) {
+                        androidx.core.app.ActivityCompat.requestPermissions(
+                            this,
+                            notGranted.toTypedArray(),
+                            1002
+                        )
                     }
                     result.success(true)
                 }

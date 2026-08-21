@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/schedule_provider.dart';
 import '../widgets/top_notification.dart';
+import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
@@ -32,6 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   DateTime? _selectedBirthdate;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -469,7 +471,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Register Button
                 ElevatedButton(
-                  onPressed: _handleRegister,
+                  onPressed: _isLoading ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isDark ? Colors.white : Colors.black,
                     foregroundColor: isDark ? Colors.black : Colors.white,
@@ -479,13 +481,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  child: const Text(
-                    "Register Account",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isDark ? Colors.black : Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          "Register Account",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 24),
 
@@ -579,29 +592,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _handleRegister() {
+  void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      // Register directly in Firebase Authentication
+      final authResult = await AuthService.signUp(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (!authResult.success) {
+        TopNotification.show(
+          context,
+          title: "Registration Failed",
+          message: authResult.errorMessage ?? "Could not create account in Firebase.",
+          type: NotificationType.error,
+        );
+        return;
+      }
+
       final fName = _capitalize(_firstNameController.text);
       final mName = _capitalize(_middleNameController.text);
       final lName = _capitalize(_surnameController.text);
       final fullName = mName.isNotEmpty ? "$fName $mName $lName" : "$fName $lName";
 
-      // Save student profile details in ScheduleProvider
-      Provider.of<ScheduleProvider>(context, listen: false).updateStudentProfile(
+      final provider = Provider.of<ScheduleProvider>(context, listen: false);
+
+      // Save student profile details in ScheduleProvider and sync to Firebase Realtime Database
+      await provider.updateStudentProfile(
         firstName: fName,
         middleName: mName,
         surname: lName,
         birthdate: _birthdateController.text,
         age: _ageController.text,
-        email: _emailController.text,
+        email: email,
         course: _selectedCourse,
         year: _selectedYear,
         semester: _selectedSemester,
       );
 
+      await provider.loginUser(email, true);
+
+      if (!mounted) return;
       TopNotification.show(
         context,
-        title: "Welcome, $fullName! 🎉",
+        title: "Welcome, $fullName!",
         message: "Your Schedly account has been registered successfully.",
         type: NotificationType.success,
       );

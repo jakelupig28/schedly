@@ -1,6 +1,6 @@
 {
   "name": "schedly-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Backend server for Schedly, integrating Firebase Authentication and Realtime Database",
   "main": "index.js",
   "scripts": {

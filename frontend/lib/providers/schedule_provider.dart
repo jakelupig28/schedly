@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/schedule.dart';
 import '../services/native_service.dart';
+import '../services/cor_parser_service.dart';
 
 class ScheduleProvider with ChangeNotifier {
   // Available Dropdown Options
@@ -64,6 +65,7 @@ class ScheduleProvider with ChangeNotifier {
   ];
 
   // Active editing schedule details
+  String? _activeScheduleId;
   String _activeSchoolYear = 'S.Y. 2026-2027';
   String _activeSemester = '1st Semester';
   String _activeCourse = 'BS Information Technology';
@@ -114,6 +116,7 @@ class ScheduleProvider with ChangeNotifier {
   }
 
   // Getters
+  String? get activeScheduleId => _activeScheduleId;
   String get activeSchoolYear => _activeSchoolYear.isNotEmpty ? _activeSchoolYear : 'S.Y. 2026-2027';
   String get activeSemester => _activeSemester.isNotEmpty ? _activeSemester : '1st Semester';
   String get activeCourse => _activeCourse.isNotEmpty ? _activeCourse : 'BS Information Technology';
@@ -155,7 +158,7 @@ class ScheduleProvider with ChangeNotifier {
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
   // Setters
-  void updateStudentProfile({
+  Future<void> updateStudentProfile({
     required String firstName,
     required String middleName,
     required String surname,
@@ -188,6 +191,27 @@ class ScheduleProvider with ChangeNotifier {
     await prefs.setString('student_course', course);
     await prefs.setString('student_year', year);
     await prefs.setString('student_semester', semester);
+    await prefs.setInt('student_profile_updated_at', DateTime.now().millisecondsSinceEpoch);
+
+    // Save profile snapshot under email key for multi-account/persistent retrieval
+    if (email.isNotEmpty) {
+      final sanitizedEmail = email.toLowerCase().trim();
+      final profileMap = {
+        'firstName': firstName,
+        'middleName': middleName,
+        'surname': surname,
+        'birthdate': birthdate,
+        'age': age,
+        'email': email,
+        'course': course,
+        'year': year,
+        'semester': semester,
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+      await prefs.setString('user_profile_$sanitizedEmail', json.encode(profileMap));
+    }
+
+    NativeService.syncNativeWidgetData(this);
 
     // Sync to Firebase Realtime Database
     _syncProfileToFirebase(
@@ -238,7 +262,8 @@ class ScheduleProvider with ChangeNotifier {
       });
       
       request.write(body);
-      await request.close();
+      final response = await request.close();
+      await response.drain();
       client.close();
     } catch (_) {}
   }
@@ -257,16 +282,43 @@ class ScheduleProvider with ChangeNotifier {
         if (responseBody != 'null' && responseBody.isNotEmpty) {
           final data = json.decode(responseBody);
           if (data is Map<String, dynamic>) {
-            _studentFirstName = data['firstName'] ?? _studentFirstName;
-            _studentMiddleName = data['middleName'] ?? _studentMiddleName;
-            _studentSurname = data['surname'] ?? _studentSurname;
-            _studentBirthdate = data['birthdate'] ?? _studentBirthdate;
-            _studentAge = data['age'] ?? _studentAge;
-            _activeCourse = data['course'] ?? _activeCourse;
-            _activeYear = data['year'] ?? _activeYear;
-            _studentSemester = data['semester'] ?? _studentSemester;
-            _activeSemester = _studentSemester;
-            notifyListeners();
+            bool changed = false;
+            if (data['firstName'] != null && data['firstName'].toString().isNotEmpty && (_studentFirstName.isEmpty || _studentFirstName == 'Student')) {
+              _studentFirstName = data['firstName'];
+              changed = true;
+            }
+            if (data['middleName'] != null && data['middleName'].toString().isNotEmpty && _studentMiddleName.isEmpty) {
+              _studentMiddleName = data['middleName'];
+              changed = true;
+            }
+            if (data['surname'] != null && data['surname'].toString().isNotEmpty && _studentSurname.isEmpty) {
+              _studentSurname = data['surname'];
+              changed = true;
+            }
+            if (data['birthdate'] != null && data['birthdate'].toString().isNotEmpty && _studentBirthdate.isEmpty) {
+              _studentBirthdate = data['birthdate'];
+              changed = true;
+            }
+            if (data['age'] != null && data['age'].toString().isNotEmpty && _studentAge.isEmpty) {
+              _studentAge = data['age'];
+              changed = true;
+            }
+            if (data['course'] != null && data['course'].toString().isNotEmpty && _activeCourse.isEmpty) {
+              _activeCourse = data['course'];
+              changed = true;
+            }
+            if (data['year'] != null && data['year'].toString().isNotEmpty && _activeYear.isEmpty) {
+              _activeYear = data['year'];
+              changed = true;
+            }
+            if (data['semester'] != null && data['semester'].toString().isNotEmpty && _studentSemester.isEmpty) {
+              _studentSemester = data['semester'];
+              _activeSemester = _studentSemester;
+              changed = true;
+            }
+            if (changed) {
+              notifyListeners();
+            }
           }
         }
       }
@@ -388,6 +440,7 @@ class ScheduleProvider with ChangeNotifier {
   }
 
   void clearActiveSessions() {
+    _activeScheduleId = null;
     _activeSessions.clear();
     notifyListeners();
     NativeService.syncNativeWidgetData(this);
@@ -397,8 +450,9 @@ class ScheduleProvider with ChangeNotifier {
   Future<void> saveCurrentToHistory() async {
     if (_activeSessions.isEmpty) return;
 
+    final newId = DateTime.now().millisecondsSinceEpoch.toString();
     final newItem = ScheduleHistoryItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: newId,
       schoolYear: _activeSchoolYear,
       semester: _activeSemester,
       course: _activeCourse,
@@ -410,7 +464,8 @@ class ScheduleProvider with ChangeNotifier {
       createdAt: DateTime.now(),
     );
 
-    // Remove if duplicate ID (highly unlikely)
+    _activeScheduleId = newId;
+    // Remove if duplicate ID
     _history.removeWhere((item) => item.id == newItem.id);
     // Add to top of the history list
     _history.insert(0, newItem);
@@ -421,6 +476,7 @@ class ScheduleProvider with ChangeNotifier {
 
   // Load a schedule from history to active workspace
   void loadHistoryItem(ScheduleHistoryItem item) {
+    _activeScheduleId = item.id;
     _activeSchoolYear = item.schoolYear;
     _activeSemester = item.semester;
     _activeCourse = item.course;
@@ -436,35 +492,141 @@ class ScheduleProvider with ChangeNotifier {
     NativeService.syncNativeWidgetData(this);
   }
 
-  // Delete a history item
+  // Helper to check if history item matches active sessions
+  bool _hasMatchingSessions(ScheduleHistoryItem item) {
+    if (_activeSessions.length != item.sessions.length) return false;
+    for (int i = 0; i < _activeSessions.length; i++) {
+      if (_activeSessions[i].subjectCode != item.sessions[i].subjectCode ||
+          _activeSessions[i].dayOfWeek != item.sessions[i].dayOfWeek ||
+          _activeSessions[i].startTime != item.sessions[i].startTime) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Delete a history item and update active workspace/calendar accordingly
   Future<void> deleteHistoryItem(String id) async {
+    final bool isCurrentActive = (_activeScheduleId == id) ||
+        (_history.length == 1 && _history.first.id == id) ||
+        (_activeSessions.isNotEmpty && _history.any((item) => item.id == id && _hasMatchingSessions(item)));
+
     _history.removeWhere((item) => item.id == id);
-    notifyListeners();
+
+    if (isCurrentActive) {
+      if (_history.isNotEmpty) {
+        // Automatically switch to the next available schedule in history
+        loadHistoryItem(_history.first);
+      } else {
+        // All schedules removed: clear active sessions, calendar, and native widgets
+        _activeScheduleId = null;
+        _activeSessions.clear();
+        notifyListeners();
+        NativeService.syncNativeWidgetData(this);
+      }
+    } else {
+      notifyListeners();
+    }
+
     await saveHistoryToPrefs();
   }
 
   // Auth Actions
   Future<void> loginUser(String email, bool rememberMe) async {
     _isLoggedIn = true;
-    _studentEmail = email;
-    if (_studentFirstName.isEmpty || _studentFirstName == 'Student') {
-      _studentFirstName = email.split('@').first;
-    }
-    _lastActiveTimestamp = DateTime.now().millisecondsSinceEpoch;
+    _studentEmail = email.trim();
     _rememberMe = rememberMe;
-    _savedEmail = rememberMe ? email : '';
+    _savedEmail = rememberMe ? email.trim() : '';
+    _lastActiveTimestamp = DateTime.now().millisecondsSinceEpoch;
     _sessionExpiredNotice = false;
     _hasSeenOnboarding = true;
-    notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
+
+    // Check if there is an existing saved profile for this user
+    final sanitizedEmail = email.toLowerCase().trim();
+    final cachedProfileJson = prefs.getString('user_profile_$sanitizedEmail');
+    if (cachedProfileJson != null && cachedProfileJson.isNotEmpty) {
+      try {
+        final profileData = json.decode(cachedProfileJson);
+        if (profileData is Map<String, dynamic>) {
+          if (profileData['firstName'] != null && profileData['firstName'].toString().isNotEmpty) {
+            _studentFirstName = profileData['firstName'];
+          }
+          if (profileData['middleName'] != null) _studentMiddleName = profileData['middleName'];
+          if (profileData['surname'] != null) _studentSurname = profileData['surname'];
+          if (profileData['birthdate'] != null) _studentBirthdate = profileData['birthdate'];
+          if (profileData['age'] != null) _studentAge = profileData['age'];
+          if (profileData['course'] != null && profileData['course'].toString().isNotEmpty) {
+            _activeCourse = profileData['course'];
+          }
+          if (profileData['year'] != null && profileData['year'].toString().isNotEmpty) {
+            _activeYear = profileData['year'];
+          }
+          if (profileData['semester'] != null && profileData['semester'].toString().isNotEmpty) {
+            _studentSemester = profileData['semester'];
+            _activeSemester = _studentSemester;
+          }
+        }
+      } catch (_) {}
+    } else {
+      // Check general SharedPreferences
+      final savedFirstName = prefs.getString('student_firstName');
+      if (savedFirstName != null && savedFirstName.isNotEmpty && savedFirstName != 'Student') {
+        _studentFirstName = savedFirstName;
+        _studentMiddleName = prefs.getString('student_middleName') ?? _studentMiddleName;
+        _studentSurname = prefs.getString('student_surname') ?? _studentSurname;
+        _studentBirthdate = prefs.getString('student_birthdate') ?? _studentBirthdate;
+        _studentAge = prefs.getString('student_age') ?? _studentAge;
+        _activeCourse = prefs.getString('student_course') ?? _activeCourse;
+        _activeYear = prefs.getString('student_year') ?? _activeYear;
+        _studentSemester = prefs.getString('student_semester') ?? _studentSemester;
+        _activeSemester = _studentSemester;
+      } else if (_studentFirstName.isEmpty || _studentFirstName == 'Student') {
+        _studentFirstName = email.split('@').first;
+      }
+    }
+
+    // Load per-user history if exists
+    final userHistoryKey = 'schedule_history_$sanitizedEmail';
+    if (prefs.containsKey(userHistoryKey)) {
+      final userHistoryJson = prefs.getString(userHistoryKey);
+      if (userHistoryJson != null) {
+        try {
+          final List<dynamic> decoded = json.decode(userHistoryJson);
+          _history = decoded.map((x) => ScheduleHistoryItem.fromMap(x)).toList();
+        } catch (_) {
+          _history = [];
+        }
+      } else {
+        _history = [];
+      }
+      if (_history.isNotEmpty) {
+        loadHistoryItem(_history.first);
+      } else {
+        _activeScheduleId = null;
+        _activeSessions.clear();
+      }
+    }
+
+    notifyListeners();
+
     await prefs.setBool('is_logged_in', true);
     await prefs.setBool('has_seen_onboarding', true);
     await prefs.setInt('last_active_timestamp', _lastActiveTimestamp);
     await prefs.setBool('remember_me', rememberMe);
     await prefs.setString('saved_email', _savedEmail);
-    await prefs.setString('student_email', email);
+    await prefs.setString('student_email', _studentEmail);
     await prefs.setString('student_firstName', _studentFirstName);
+    await prefs.setString('student_middleName', _studentMiddleName);
+    await prefs.setString('student_surname', _studentSurname);
+    await prefs.setString('student_birthdate', _studentBirthdate);
+    await prefs.setString('student_age', _studentAge);
+    await prefs.setString('student_course', _activeCourse);
+    await prefs.setString('student_year', _activeYear);
+    await prefs.setString('student_semester', _studentSemester);
+
+    _fetchProfileFromFirebase(_studentEmail);
   }
 
   Future<void> logoutUser() async {
@@ -542,6 +704,40 @@ class ScheduleProvider with ChangeNotifier {
     _activeSemester = _studentSemester;
 
     if (_studentEmail.isNotEmpty) {
+      final sanitizedEmail = _studentEmail.toLowerCase().trim();
+      final cachedProfileJson = prefs.getString('user_profile_$sanitizedEmail');
+      if (cachedProfileJson != null && cachedProfileJson.isNotEmpty) {
+        try {
+          final profileData = json.decode(cachedProfileJson);
+          if (profileData is Map<String, dynamic>) {
+            if (_studentFirstName.isEmpty && profileData['firstName'] != null) {
+              _studentFirstName = profileData['firstName'];
+            }
+            if (_studentMiddleName.isEmpty && profileData['middleName'] != null) {
+              _studentMiddleName = profileData['middleName'];
+            }
+            if (_studentSurname.isEmpty && profileData['surname'] != null) {
+              _studentSurname = profileData['surname'];
+            }
+            if (_studentBirthdate.isEmpty && profileData['birthdate'] != null) {
+              _studentBirthdate = profileData['birthdate'];
+            }
+            if (_studentAge.isEmpty && profileData['age'] != null) {
+              _studentAge = profileData['age'];
+            }
+            if (profileData['course'] != null && profileData['course'].toString().isNotEmpty) {
+              _activeCourse = profileData['course'];
+            }
+            if (profileData['year'] != null && profileData['year'].toString().isNotEmpty) {
+              _activeYear = profileData['year'];
+            }
+            if (profileData['semester'] != null && profileData['semester'].toString().isNotEmpty) {
+              _studentSemester = profileData['semester'];
+              _activeSemester = _studentSemester;
+            }
+          }
+        } catch (_) {}
+      }
       _fetchProfileFromFirebase(_studentEmail);
     }
 
@@ -563,12 +759,16 @@ class ScheduleProvider with ChangeNotifier {
       }
     }
 
+    final hasInitializedDefault = prefs.getBool('has_initialized_default') ?? false;
+
     // If active sessions are empty and history has items, load the first history item
     if (_activeSessions.isEmpty && _history.isNotEmpty) {
       loadHistoryItem(_history.first);
-    } else if (_activeSessions.isEmpty && _history.isEmpty) {
-      // Create initial starter sample schedule so user immediately has a working collection!
+    } else if (_activeSessions.isEmpty && _history.isEmpty && !hasInitializedDefault && !_hasSeenOnboarding) {
+      // Create initial starter sample schedule only on very first app run
       _populateDefaultInitialSchedule();
+      await prefs.setBool('has_initialized_default', true);
+      await saveHistoryToPrefs();
     }
 
     _isInitialized = true;
@@ -718,26 +918,77 @@ class ScheduleProvider with ChangeNotifier {
   Future<void> saveHistoryToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final historyListMap = _history.map((x) => x.toMap()).toList();
-    await prefs.setString('schedule_history', json.encode(historyListMap));
+    final historyJson = json.encode(historyListMap);
+    await prefs.setString('schedule_history', historyJson);
+    await prefs.setBool('has_initialized_default', true);
+
+    if (_studentEmail.isNotEmpty) {
+      final sanitizedEmail = _studentEmail.toLowerCase().trim();
+      await prefs.setString('schedule_history_$sanitizedEmail', historyJson);
+      await prefs.setBool('user_history_initialized_$sanitizedEmail', true);
+    }
   }
 
-  // Mock OCR Parsing Simulation
-  Future<void> simulateOcrScan(String filePath, {String scanType = 'scan'}) async {
-    // Simulate extraction delay
-    await Future.delayed(const Duration(seconds: 2));
+  // OCR Parsing Simulation & Accurate Academic Profile Auto-Population
+  Future<CorScanResult> simulateOcrScan(String filePath, {String scanType = 'scan'}) async {
+    // High-accuracy COR OCR and multi-modal document extraction
+    final scanResult = await CorParserService.parseCorDocument(
+      filePath: filePath,
+      scanType: scanType,
+      currentFirstName: _studentFirstName,
+      currentMiddleName: _studentMiddleName,
+      currentSurname: _studentSurname,
+      currentBirthdate: _studentBirthdate,
+      currentAge: _studentAge,
+      currentEmail: _studentEmail,
+      currentCourse: _activeCourse,
+      currentYear: _activeYear,
+      currentSemester: _activeSemester,
+    );
 
-    // Clear previous sessions for fresh parsing
+    // Clear previous sessions and load freshly extracted accurate sessions
     _activeSessions.clear();
+    _activeSessions.addAll(scanResult.sessions);
 
-    final mockSessions = _createStandardMockSessions();
-    _activeSessions.addAll(mockSessions);
-    _activeCourse = 'BS Information Technology';
-    _activeYear = '4th Year';
-    _activeSemester = '1st Semester';
-    _activeSchoolYear = 'S.Y. 2026-2027';
-    _activeSection = 'Section A';
+    // Synchronize extracted academic metadata
+    _activeCourse = scanResult.course;
+    _activeYear = scanResult.yearLevel;
+    _activeSemester = scanResult.semester;
+    _activeSchoolYear = scanResult.schoolYear;
+    _activeSection = scanResult.section;
+    _studentSemester = _activeSemester;
+
+    if (scanResult.isOfficialCorComplete) {
+      // Official COR document: Auto-populates ALL personal & academic info in Edit Profile
+      await updateStudentProfile(
+        firstName: scanResult.studentFirstName,
+        middleName: scanResult.studentMiddleName,
+        surname: scanResult.studentSurname,
+        birthdate: scanResult.birthdate,
+        age: scanResult.age,
+        email: scanResult.email.isNotEmpty ? scanResult.email : _studentEmail,
+        course: _activeCourse,
+        year: _activeYear,
+        semester: _activeSemester,
+      );
+    } else {
+      // Camera photo or image screenshot: update academic program/section,
+      // keep existing profile info without forcing defaults so user completes in Edit Profile.
+      await updateStudentProfile(
+        firstName: _studentFirstName,
+        middleName: _studentMiddleName,
+        surname: _studentSurname,
+        birthdate: _studentBirthdate,
+        age: _studentAge,
+        email: _studentEmail,
+        course: _activeCourse,
+        year: _activeYear,
+        semester: _activeSemester,
+      );
+    }
 
     notifyListeners();
     NativeService.syncNativeWidgetData(this);
+    return scanResult;
   }
 }

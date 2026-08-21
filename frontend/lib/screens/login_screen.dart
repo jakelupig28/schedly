@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/schedule_provider.dart';
 import '../widgets/top_notification.dart';
+import '../services/auth_service.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
@@ -20,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _rememberMe = false;
   bool _isInitialized = false;
+  bool _isLoading = false;
 
   @override
   void didChangeDependencies() {
@@ -282,13 +284,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Forgot Password
                     TextButton(
-                      onPressed: () {
-                        TopNotification.show(
-                          context,
-                          title: "Password Reset",
-                          message: "Password reset link requested for your email.",
-                          type: NotificationType.info,
-                        );
+                      onPressed: () async {
+                        final email = _emailController.text.trim();
+                        if (email.isEmpty) {
+                          TopNotification.show(
+                            context,
+                            title: "Email Required",
+                            message: "Please enter your email address to receive password reset link.",
+                            type: NotificationType.info,
+                          );
+                          return;
+                        }
+                        final sent = await AuthService.sendPasswordReset(email);
+                        if (!mounted) return;
+                        if (sent) {
+                          TopNotification.show(
+                            context,
+                            title: "Reset Email Sent",
+                            message: "Password reset link sent to $email. Please check your inbox.",
+                            type: NotificationType.success,
+                          );
+                        } else {
+                          TopNotification.show(
+                            context,
+                            title: "Reset Failed",
+                            message: "Could not send reset email. Please verify that this account exists in Firebase.",
+                            type: NotificationType.error,
+                          );
+                        }
                       },
                       child: Text(
                         "Forgot Password?",
@@ -306,7 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 // Login Button
                 ElevatedButton(
-                  onPressed: _handleLogin,
+                  onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isDark ? Colors.white : Colors.black,
                     foregroundColor: isDark ? Colors.black : Colors.white,
@@ -316,13 +339,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  child: const Text(
-                    "Log In",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isDark ? Colors.black : Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          "Log In",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
                 
                 const SizedBox(height: 24),
@@ -371,7 +405,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
       final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      // Authenticate directly with Firebase Authentication
+      final authResult = await AuthService.signIn(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (!authResult.success) {
+        TopNotification.show(
+          context,
+          title: "Login Failed",
+          message: authResult.errorMessage ?? "Invalid credentials.",
+          type: NotificationType.error,
+        );
+        return;
+      }
+
       final provider = Provider.of<ScheduleProvider>(context, listen: false);
       await provider.loginUser(email, _rememberMe);
 

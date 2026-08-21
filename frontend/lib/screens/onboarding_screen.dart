@@ -70,8 +70,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                           onPressed: () {
                             _pageController.previousPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
+                              duration: const Duration(milliseconds: 400),
+                              curve: Curves.fastOutSlowIn,
                             );
                           },
                         )
@@ -99,6 +99,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
+                physics: const BouncingScrollPhysics(),
                 itemCount: _pages.length,
                 onPageChanged: (index) {
                   setState(() {
@@ -244,15 +245,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
                         _pages.length,
-                        (index) => Container(
+                        (index) => AnimatedContainer(
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeOutCubic,
                           margin: const EdgeInsets.symmetric(horizontal: 4),
-                          height: 6,
-                          width: _currentIndex == index ? 18 : 6,
+                          height: 7,
+                          width: _currentIndex == index ? 24 : 7,
                           decoration: BoxDecoration(
                             color: _currentIndex == index
                                 ? (isDark ? Colors.white : Colors.black)
-                                : Colors.grey.withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(3),
+                                : Colors.grey.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                       ),
@@ -265,8 +268,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed: () {
                       if (_currentIndex < lastIndex) {
                         _pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.fastOutSlowIn,
                         );
                       } else {
                         _navigateToLogin(context);

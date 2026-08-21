@@ -10,6 +10,7 @@ class ClassSession {
   final String startTime; // e.g. "08:00 AM"
   final String endTime;   // e.g. "09:30 AM"
   final int colorValue;   // Hex color representation
+  final int units;        // Credit / Lecture / Lab Units (e.g. 3, 2, 1)
 
   ClassSession({
     required this.id,
@@ -21,6 +22,7 @@ class ClassSession {
     required this.startTime,
     required this.endTime,
     required this.colorValue,
+    this.units = 3,
   });
 
   Map<String, dynamic> toMap() {
@@ -34,6 +36,7 @@ class ClassSession {
       'startTime': startTime,
       'endTime': endTime,
       'colorValue': colorValue,
+      'units': units,
     };
   }
 
@@ -48,6 +51,9 @@ class ClassSession {
       startTime: map['startTime'] ?? '08:00 AM',
       endTime: map['endTime'] ?? '09:00 AM',
       colorValue: map['colorValue'] ?? 0xFF6C63FF,
+      units: (map['units'] is num)
+          ? (map['units'] as num).toInt()
+          : (map['units'] != null ? int.tryParse(map['units'].toString()) ?? 3 : 3),
     );
   }
 
@@ -65,6 +71,7 @@ class ClassSession {
     String? startTime,
     String? endTime,
     int? colorValue,
+    int? units,
   }) {
     return ClassSession(
       id: id ?? this.id,
@@ -76,6 +83,7 @@ class ClassSession {
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       colorValue: colorValue ?? this.colorValue,
+      units: units ?? this.units,
     );
   }
 }
@@ -105,7 +113,19 @@ class ScheduleHistoryItem {
     required this.createdAt,
   });
 
-  int get totalUnits => (sessions.length * 1.8).round();
+  /// Accurate total units calculated from distinct subjects (preventing double counting multi-day sessions)
+  int get totalUnits {
+    if (sessions.isEmpty) return 0;
+    final seen = <String>{};
+    int sum = 0;
+    for (final s in sessions) {
+      final key = s.subjectCode.isNotEmpty ? s.subjectCode.toUpperCase().replaceAll(RegExp(r'\s+'), '') : s.subjectName.toLowerCase();
+      if (seen.add(key)) {
+        sum += s.units > 0 ? s.units : 3;
+      }
+    }
+    return sum > 0 ? sum : (sessions.length * 3);
+  }
 
   Map<String, dynamic> toMap() {
     return {

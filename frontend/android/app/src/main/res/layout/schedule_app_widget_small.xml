@@ -5,9 +5,9 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg_rounded"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="12dp">
 
-    <!-- Widget Header -->
+    <!-- Header: Icon, Schedly, Day -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -15,8 +15,8 @@
         android:orientation="horizontal">
 
         <ImageView
-            android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
             android:background="@drawable/widget_logo_rounded"
             android:padding="2dp"
             android:scaleType="fitCenter"
@@ -26,7 +26,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -36,7 +36,7 @@
                 android:layout_height="wrap_content"
                 android:text="SCHEDLY"
                 android:textColor="#9D95FF"
-                android:textSize="9.5sp"
+                android:textSize="8.5sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -45,20 +45,20 @@
                 android:layout_height="wrap_content"
                 android:text="TODAY"
                 android:textColor="#FFFFFF"
-                android:textSize="13sp"
+                android:textSize="11.5sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- RemoteViews compliant Divider (FrameLayout instead of View) -->
+    <!-- Divider -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
         android:background="#20FFFFFF" />
 
-    <!-- Class Content -->
+    <!-- Content: Class or Rest Day -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -70,54 +70,41 @@
             android:id="@+id/widget_subject_code"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CS 101 • Next Class"
-            android:textColor="#6C63FF"
-            android:textSize="12sp"
+            android:text="CS 101"
+            android:textColor="#9D95FF"
+            android:textSize="11.5sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_subject_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="1dp"
             android:ellipsize="end"
             android:maxLines="1"
             android:text="Intro to Computing"
             android:textColor="#FFFFFF"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_marginTop="2dp"
+            android:text="08:30 AM - 10:00 AM"
+            android:textColor="#B0B3C7"
+            android:textSize="10sp" />
 
-            <TextView
-                android:id="@+id/widget_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="08:30 AM - 10:00 AM"
-                android:textColor="#B0B3C7"
-                android:textSize="11sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:text="•"
-                android:textColor="#B0B3C7"
-                android:textSize="11sp" />
-
-            <TextView
-                android:id="@+id/widget_room"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Room Lab 302"
-                android:textColor="#B0B3C7"
-                android:textSize="11sp" />
-        </LinearLayout>
+        <TextView
+            android:id="@+id/widget_room"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Room Lab 302"
+            android:textColor="#B0B3C7"
+            android:textSize="9.5sp" />
     </LinearLayout>
 </LinearLayout>

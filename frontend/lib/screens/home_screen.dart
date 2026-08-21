@@ -11,6 +11,8 @@ import 'schedule_exporter_screen.dart';
 import 'history_screen.dart';
 import 'onboarding_screen.dart';
 import '../widgets/mock_widget_preview.dart';
+import '../services/native_service.dart';
+import '../services/quotes_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool showWelcomeBackDialog;
@@ -25,20 +27,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   int _selectedNavIndex = 0;
   final List<String> _days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-  final List<String> _motivationalQuotes = [
-    "The secret of getting ahead is getting started. 🚀",
-    "Focus on progress, not perfection. ✨",
-    "Your future is created by what you do today! 📚",
-    "Believe you can and you're halfway there. 💪",
-    "Make today your masterpiece. 🎨",
-  ];
   late String _activeQuote;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _activeQuote = _motivationalQuotes[DateTime.now().second % _motivationalQuotes.length];
+    _activeQuote = QuotesService.getDailyQuote();
 
     // Refresh activity on open
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -72,7 +67,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             index: _selectedNavIndex,
             children: [
               _buildDashboard(context, theme, provider, sessions),
-              const ScheduleParserScreen(),
+              ScheduleParserScreen(
+                onNavigateHome: () {
+                  setState(() {
+                    _selectedNavIndex = 0;
+                  });
+                },
+              ),
               const ScheduleExporterScreen(),
               const HistoryScreen(),
             ],
@@ -249,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           onRefresh: () async {
             await Future.delayed(const Duration(milliseconds: 500));
             setState(() {
-              _activeQuote = _motivationalQuotes[DateTime.now().second % _motivationalQuotes.length];
+              _activeQuote = QuotesService.getDailyQuote();
             });
           },
           child: SingleChildScrollView(
@@ -1495,7 +1496,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             Navigator.pop(sheetContext);
                             TopNotification.show(
                               context,
-                              title: "Schedule Activated ✨",
+                              title: "Schedule Activated",
                               message: "${item.course} (${item.year}, ${item.semester}) is now active.",
                               type: NotificationType.success,
                             );
@@ -1611,9 +1612,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ],
                   ),
                   child: const Center(
-                    child: Text(
-                      "🎉",
-                      style: TextStyle(fontSize: 34),
+                    child: Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Colors.white,
+                      size: 38,
                     ),
                   ),
                 ),
@@ -1621,7 +1623,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
                 // Title
                 Text(
-                  "Welcome Back, ${provider.studentFirstName}! ✨",
+                  "Welcome Back, ${provider.studentFirstName}!",
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
@@ -1636,12 +1638,47 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   "Your semester schedule, saved wallpapers, and homescreen widgets are all synced and ready.",
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 14,
+                    fontSize: 13.5,
                     color: isDark ? Colors.white70 : Colors.grey[700],
-                    height: 1.5,
+                    height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+
+                // Security & Permissions Notice Card
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6C63FF).withValues(alpha: isDark ? 0.18 : 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF6C63FF).withValues(alpha: isDark ? 0.35 : 0.20),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2),
+                        child: Icon(Icons.verified_user_outlined, color: Color(0xFF6C63FF), size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          "Please allow access to all required device permissions for optimal app performance and capabilities. Rest assured, your personal data is completely secure and will never be compromised.",
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            height: 1.4,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF374151),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
 
                 // Motivational Quote card
                 Container(
@@ -1652,13 +1689,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.tips_and_updates_rounded, color: Colors.amber, size: 18),
+                      const Icon(Icons.format_quote_rounded, color: Colors.amber, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _activeQuote,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11.5,
                             fontStyle: FontStyle.italic,
                             color: isDark ? Colors.white70 : Colors.black87,
                           ),
@@ -1667,11 +1704,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 22),
 
                 // Action Button
-                ElevatedButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    NativeService.requestAppPermissions();
+                  },
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                  label: const Text(
+                    "Let's Get Started",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6C63FF),
                     foregroundColor: Colors.white,
@@ -1679,13 +1727,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  child: const Text(
-                    "Let's Get Started 🚀",
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -1818,28 +1859,29 @@ class _ProfileEditDialogState extends State<_ProfileEditDialog> {
     }
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       final fName = _capitalize(_firstNameController.text);
       final mName = _capitalize(_middleNameController.text);
       final lName = _capitalize(_surnameController.text);
 
-      widget.provider.updateStudentProfile(
+      await widget.provider.updateStudentProfile(
         firstName: fName,
         middleName: mName,
         surname: lName,
         birthdate: _birthdateController.text,
         age: _ageController.text,
-        email: _emailController.text,
+        email: _emailController.text.trim(),
         course: _selectedCourse,
         year: _selectedYear,
         semester: _selectedSemester,
       );
 
+      if (!mounted) return;
       Navigator.of(context).pop();
       TopNotification.show(
         context,
-        title: "Profile Updated ✨",
+        title: "Profile Updated",
         message: "Your student profile changes have been saved.",
         type: NotificationType.success,
       );

@@ -378,7 +378,7 @@ class HistoryScreen extends StatelessWidget {
                             Navigator.pop(sheetContext);
                             TopNotification.show(
                               context,
-                              title: "Schedule Activated ✨",
+                              title: "Schedule Activated",
                               message: "${item.course} (${item.year}, ${item.semester}) is now active.",
                               type: NotificationType.success,
                             );

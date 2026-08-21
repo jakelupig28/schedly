@@ -375,13 +375,32 @@ class _MockWidgetPreviewState extends State<MockWidgetPreview> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "SCHEDLY",
-              style: TextStyle(color: titleColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Image.asset('assets/app_icon.png', fit: BoxFit.contain),
             ),
-            Icon(Icons.school_rounded, size: 13, color: titleColor),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "SCHEDLY",
+                    style: TextStyle(color: titleColor, fontSize: 8.5, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                  ),
+                  Text(
+                    todayName.toUpperCase(),
+                    style: TextStyle(color: bodyColor, fontSize: 11, fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 6),

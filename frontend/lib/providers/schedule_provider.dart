@@ -9,37 +9,123 @@ import '../services/cor_parser_service.dart';
 class ScheduleProvider with ChangeNotifier {
   // Available Dropdown Options
   static const List<String> availableCourses = [
+    // Computing & Information Technology
     'BS Information Technology',
     'BS Computer Science',
     'BS Information Systems',
     'BS Software Engineering',
     'BS Computer Engineering',
-    'BS Electronics Engineering',
+    'BS Data Science',
+    'BS Cybersecurity',
+    'BS Entertainment and Multimedia Computing',
+    'BS Interactive Media and Game Development',
+
+    // Engineering & Technology
     'BS Civil Engineering',
     'BS Mechanical Engineering',
     'BS Electrical Engineering',
+    'BS Electronics Engineering',
     'BS Industrial Engineering',
+    'BS Chemical Engineering',
+    'BS Aeronautical Engineering',
+    'BS Geodetic Engineering',
+    'BS Sanitary Engineering',
+    'BS Mining Engineering',
+    'BS Agricultural and Biosystems Engineering',
+    'BS Mechatronics Engineering',
+    'BS Marine Engineering',
+
+    // Architecture & Design
     'BS Architecture',
+    'BS Interior Design',
+    'BS Landscape Architecture',
+    'Bachelor of Fine Arts',
+    'Bachelor of Multimedia Arts',
+    'Bachelor of Industrial Design',
+
+    // Business, Accountancy & Management
     'BS Accountancy',
+    'BS Management Accounting',
+    'BS Accounting Information System',
+    'BS Internal Auditing',
     'BS Business Administration - Marketing',
     'BS Business Administration - Financial Management',
     'BS Business Administration - Human Resource Management',
     'BS Business Administration - Operations Management',
+    'BS Business Administration - Business Economics',
+    'BS Entrepreneurship',
+    'BS Real Estate Management',
+    'BS Customs Administration',
+    'BS Office Administration',
+    'BS Public Administration',
+
+    // Hospitality, Tourism & Culinary
     'BS Hospitality Management',
     'BS Tourism Management',
-    'BS Psychology',
+    'BS Hotel and Restaurant Management',
+    'BS Culinary Arts Management',
+
+    // Health, Nursing & Medical Sciences
+    'BS Nursing',
+    'BS Medical Technology',
+    'BS Pharmacy',
+    'BS Physical Therapy',
+    'BS Occupational Therapy',
+    'BS Radiologic Technology',
+    'BS Nutrition and Dietetics',
+    'BS Respiratory Therapy',
+    'BS Midwifery',
+    'Doctor of Dental Medicine',
+    'Doctor of Optometry',
+
+    // Sciences & Mathematics
+    'BS Biology',
+    'BS Chemistry',
+    'BS Physics',
+    'BS Applied Mathematics',
+    'BS Statistics',
+    'BS Environmental Science',
+    'BS Agriculture',
+    'BS Forestry',
+    'BS Fisheries and Aquatic Sciences',
+    'BS Geology',
+
+    // Education & Teacher Training
+    'Bachelor of Elementary Education',
+    'Bachelor of Early Childhood Education',
+    'Bachelor of Special Needs Education',
+    'Bachelor of Physical Education',
     'Bachelor of Secondary Education - English',
     'Bachelor of Secondary Education - Mathematics',
     'Bachelor of Secondary Education - Science',
-    'Bachelor of Elementary Education',
-    'BS Nursing',
-    'BS Medical Technology',
-    'BS Biology',
-    'BS Criminology',
-    'BS Customs Administration',
+    'Bachelor of Secondary Education - Social Studies',
+    'Bachelor of Secondary Education - Filipino',
+    'Bachelor of Secondary Education - Values Education',
+    'Bachelor of Technical-Vocational Teacher Education',
+
+    // Social Sciences, Humanities, Law & Communication
+    'BS Psychology',
+    'AB Psychology',
     'AB Communication',
+    'AB Journalism',
+    'AB Broadcasting',
     'AB Political Science',
-    'Bachelor of Fine Arts',
+    'AB International Studies',
+    'AB Sociology',
+    'AB Philosophy',
+    'AB History',
+    'AB Literature',
+    'AB English Language Studies',
+    'AB Filipino',
+    'BS Criminology',
+    'BS Forensic Science',
+    'Bachelor of Laws / Juris Doctor',
+
+    // Maritime & Aviation
+    'BS Marine Transportation',
+    'BS Aviation / Aeronautical Science',
+    'BS Aircraft Maintenance Technology',
+    'BS Avionics Technology',
   ];
 
   static const List<String> availableSchoolYears = [

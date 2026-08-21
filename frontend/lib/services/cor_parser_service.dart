@@ -858,13 +858,25 @@ class CorParserService {
 
   static String _matchAvailableCourse(String input) {
     final lower = input.toLowerCase();
-    if (lower.contains('information tech') || lower.contains('bsit') || lower.contains('bs it')) {
+    if (lower.contains('information tech') || lower.contains('bsit') || lower.contains('bs it') || lower.contains('infotech')) {
       return 'BS Information Technology';
     }
     if (lower.contains('computer sci') || lower.contains('bscs') || lower.contains('bs cs')) {
       return 'BS Computer Science';
     }
-    if (lower.contains('computer eng') || lower.contains('bscpe') || lower.contains('bs cpe')) {
+    if (lower.contains('information sys') || lower.contains('bsis') || lower.contains('bs is')) {
+      return 'BS Information Systems';
+    }
+    if (lower.contains('software eng') || lower.contains('bsse')) {
+      return 'BS Software Engineering';
+    }
+    if (lower.contains('data sci') || lower.contains('bsds')) {
+      return 'BS Data Science';
+    }
+    if (lower.contains('cybersec')) {
+      return 'BS Cybersecurity';
+    }
+    if (lower.contains('computer eng') || lower.contains('bscpe') || lower.contains('bs cpe') || lower.contains('comp eng')) {
       return 'BS Computer Engineering';
     }
     if (lower.contains('civil eng') || lower.contains('bsce') || lower.contains('bs ce')) {
@@ -876,16 +888,113 @@ class CorParserService {
     if (lower.contains('electrical eng') || lower.contains('bsee') || lower.contains('bs ee')) {
       return 'BS Electrical Engineering';
     }
+    if (lower.contains('electronic') || lower.contains('bsece') || lower.contains('bs ece')) {
+      return 'BS Electronics Engineering';
+    }
+    if (lower.contains('industrial eng') || lower.contains('bsie') || lower.contains('bs ie')) {
+      return 'BS Industrial Engineering';
+    }
+    if (lower.contains('chemical eng') || lower.contains('bsche')) {
+      return 'BS Chemical Engineering';
+    }
+    if (lower.contains('aeronautical') || lower.contains('bsae')) {
+      return 'BS Aeronautical Engineering';
+    }
+    if (lower.contains('geodetic')) {
+      return 'BS Geodetic Engineering';
+    }
+    if (lower.contains('marine eng')) {
+      return 'BS Marine Engineering';
+    }
+    if (lower.contains('marine trans') || lower.contains('bsmt')) {
+      return 'BS Marine Transportation';
+    }
+    if (lower.contains('architect') || lower.contains('bsarch') || lower.contains('bs arch')) {
+      return 'BS Architecture';
+    }
+    if (lower.contains('interior design')) {
+      return 'BS Interior Design';
+    }
+    if (lower.contains('fine arts') || lower.contains('bfa')) {
+      return 'Bachelor of Fine Arts';
+    }
+    if (lower.contains('multimedia arts') || lower.contains('bma')) {
+      return 'Bachelor of Multimedia Arts';
+    }
     if (lower.contains('accountancy') || lower.contains('bsa') || lower.contains('bs a')) {
       return 'BS Accountancy';
+    }
+    if (lower.contains('management account') || lower.contains('bsma')) {
+      return 'BS Management Accounting';
+    }
+    if (lower.contains('marketing')) {
+      return 'BS Business Administration - Marketing';
+    }
+    if (lower.contains('financial manage') || lower.contains('finance')) {
+      return 'BS Business Administration - Financial Management';
+    }
+    if (lower.contains('human resource') || lower.contains('hrdm') || lower.contains('hrm')) {
+      return 'BS Business Administration - Human Resource Management';
+    }
+    if (lower.contains('operations manage')) {
+      return 'BS Business Administration - Operations Management';
     }
     if (lower.contains('business admin') || lower.contains('bsba')) {
       return 'BS Business Administration - Marketing';
     }
+    if (lower.contains('entrepreneur') || lower.contains('bsentrep')) {
+      return 'BS Entrepreneurship';
+    }
+    if (lower.contains('customs') || lower.contains('bscustoms')) {
+      return 'BS Customs Administration';
+    }
+    if (lower.contains('public admin') || lower.contains('bpa')) {
+      return 'BS Public Administration';
+    }
+    if (lower.contains('hospitality') || lower.contains('bshm')) {
+      return 'BS Hospitality Management';
+    }
+    if (lower.contains('tourism') || lower.contains('bstm')) {
+      return 'BS Tourism Management';
+    }
     if (lower.contains('nursing') || lower.contains('bsn')) {
       return 'BS Nursing';
     }
-    if (lower.contains('education') || lower.contains('bsed') || lower.contains('beed')) {
+    if (lower.contains('medical tech') || lower.contains('medtech') || lower.contains('bsmt') || lower.contains('mls')) {
+      return 'BS Medical Technology';
+    }
+    if (lower.contains('pharmacy') || lower.contains('bspharm')) {
+      return 'BS Pharmacy';
+    }
+    if (lower.contains('physical therapy') || lower.contains('bspt')) {
+      return 'BS Physical Therapy';
+    }
+    if (lower.contains('criminology') || lower.contains('bscrim')) {
+      return 'BS Criminology';
+    }
+    if (lower.contains('psychology') || lower.contains('bspsych') || lower.contains('abpsych')) {
+      return 'BS Psychology';
+    }
+    if (lower.contains('biology') || lower.contains('bsbio')) {
+      return 'BS Biology';
+    }
+    if (lower.contains('communication') || lower.contains('abcomm') || lower.contains('bacomm')) {
+      return 'AB Communication';
+    }
+    if (lower.contains('political sci') || lower.contains('polsci') || lower.contains('abpos')) {
+      return 'AB Political Science';
+    }
+    if (lower.contains('elementary educ') || lower.contains('beed')) {
+      return 'Bachelor of Elementary Education';
+    }
+    if (lower.contains('secondary educ') || lower.contains('bsed')) {
+      if (lower.contains('math')) return 'Bachelor of Secondary Education - Mathematics';
+      if (lower.contains('sci')) return 'Bachelor of Secondary Education - Science';
+      if (lower.contains('social')) return 'Bachelor of Secondary Education - Social Studies';
+      if (lower.contains('filipino')) return 'Bachelor of Secondary Education - Filipino';
+      return 'Bachelor of Secondary Education - English';
+    }
+    if (lower.contains('education') || lower.contains('educ')) {
       return 'Bachelor of Secondary Education - English';
     }
     return '';

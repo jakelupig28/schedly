@@ -707,16 +707,13 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                           ),
                         ),
 
-                        // 2. Schedule list (middle part - tilted a bit to the left side)
+                        // 2. Schedule list (cleanly positioned matching receipt orientation)
                         Positioned(
                           left: receiptLeft,
                           width: receiptWidth,
                           top: offY + (templateH * 0.536),
                           height: availableScheduleHeight,
-                          child: Transform.rotate(
-                            angle: -0.95 * 3.1415926535 / 180,
-                            alignment: Alignment.centerLeft,
-                            child: ListView.builder(
+                          child: ListView.builder(
                               padding: EdgeInsets.zero,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: flattenedSessions.length,
@@ -819,7 +816,6 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                 );
                               },
                             ),
-                          ),
                         ),
 
                         // 3. Item Count Value (aligned right across from "Item Count")
@@ -925,7 +921,6 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
           final line2 = [if (provider.activeYear.isNotEmpty) provider.activeYear, if (provider.activeSemester.isNotEmpty) provider.activeSemester].join(' • ');
 
           final hasCustomBg = provider.customBgImagePath != null;
-          final bool hasVisualBg = hasCustomBg || _selectedGradientIdx != 0;
 
           final backdrop = hasCustomBg
               ? BoxDecoration(
@@ -948,25 +943,9 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. Header Section
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: w * 0.03,
-                    vertical: hasVisualBg ? h * 0.008 : 0,
-                  ),
-                  decoration: hasVisualBg
-                      ? BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.88),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        )
-                      : null,
+                // 1. Header Section (White text with subtle shadows for high readability)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: w * 0.02),
                   child: Column(
                     children: [
                       Center(
@@ -977,7 +956,14 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                             fontSize: titleFontSize,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 3.5,
-                            color: const Color(0xFF0F172A),
+                            color: Colors.white,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withValues(alpha: 0.50),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -990,9 +976,16 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                             style: TextStyle(
                               fontFamily: 'sans-serif',
                               fontSize: subTitleFontSize,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF334155),
-                              letterSpacing: 0.3,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white.withValues(alpha: 0.95),
+                              letterSpacing: 0.4,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withValues(alpha: 0.40),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
                             ),
                             textAlign: TextAlign.center,
                             maxLines: 1,
@@ -1007,9 +1000,16 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                             style: TextStyle(
                               fontFamily: 'sans-serif',
                               fontSize: subTitleFontSize * 0.95,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF475569),
-                              letterSpacing: 0.2,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withValues(alpha: 0.85),
+                              letterSpacing: 0.3,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withValues(alpha: 0.40),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
                             ),
                             textAlign: TextAlign.center,
                             maxLines: 1,
@@ -1020,9 +1020,9 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                     ],
                   ),
                 ),
-                SizedBox(height: isLockscreen ? h * 0.025 : h * 0.018),
+                SizedBox(height: isLockscreen ? h * 0.020 : h * 0.014),
 
-                // 2. Reduced-radius Cards for Active Days Only
+                // 2. Reduced-radius Cards for Active Days Only (closely grouped together)
                 Expanded(
                   child: activeDaysList.isEmpty
                       ? Center(
@@ -1030,112 +1030,115 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                             "No classes scheduled",
                             style: TextStyle(
                               fontSize: subTitleFontSize * 1.3,
-                              color: const Color(0xFF94A3B8),
+                              color: Colors.white70,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
                         )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: activeDaysList.map((dayName) {
-                            final daySessions = sessions
-                                .where((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase())
-                                .toList();
-                            daySessions.sort((a, b) => a.startTime.compareTo(b.startTime));
+                      : Center(
+                          child: SingleChildScrollView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: activeDaysList.map((dayName) {
+                                final daySessions = sessions
+                                    .where((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase())
+                                    .toList();
+                                daySessions.sort((a, b) => a.startTime.compareTo(b.startTime));
 
-                            return Container(
-                              width: double.infinity,
-                              margin: EdgeInsets.symmetric(vertical: h * 0.004),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: w * 0.045,
-                                vertical: (h * 0.012).clamp(8.0, 18.0),
-                              ),
-                              decoration: BoxDecoration(
-                                color: hasVisualBg ? Colors.white.withValues(alpha: 0.94) : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: hasVisualBg ? Colors.white.withValues(alpha: 0.85) : const Color(0xFFCBD5E1),
-                                  width: 1.0,
-                                ),
-                                boxShadow: hasVisualBg
-                                    ? [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.07),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Left: Day Name
-                                  SizedBox(
-                                    width: w * 0.23,
-                                    child: Text(
-                                      dayName.toUpperCase(),
-                                      style: TextStyle(
-                                        fontFamily: 'sans-serif',
-                                        fontSize: dayLabelFontSize,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1.2,
-                                        color: const Color(0xFF0F172A),
+                                return Container(
+                                  width: double.infinity,
+                                  margin: EdgeInsets.symmetric(vertical: (h * 0.0035).clamp(2.5, 6.0)),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: w * 0.045,
+                                    vertical: (h * 0.010).clamp(7.0, 15.0),
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.95),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.90),
+                                      width: 1.0,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.08),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
                                       ),
-                                    ),
+                                    ],
                                   ),
-
-                                  // Spacing
-                                  const SizedBox(width: 8),
-
-                                  // Right: Classes list
-                                  Expanded(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: daySessions.map((session) {
-                                        final subjectDisplayName = session.subjectName.isNotEmpty
-                                            ? session.subjectName
-                                            : session.subjectCode;
-
-                                        return Padding(
-                                          padding: EdgeInsets.symmetric(vertical: h * 0.002),
-                                          child: Row(
-                                            children: [
-                                              // Subject Name on left
-                                              Expanded(
-                                                child: Text(
-                                                  subjectDisplayName,
-                                                  style: TextStyle(
-                                                    fontSize: subjectFontSize,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: const Color(0xFF334155),
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              // Time slot on right
-                                              Text(
-                                                "${session.startTime} - ${session.endTime}",
-                                                style: TextStyle(
-                                                  fontSize: timeFontSize,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: const Color(0xFF64748B),
-                                                ),
-                                                textAlign: TextAlign.right,
-                                              ),
-                                            ],
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      // Left: Day Name
+                                      SizedBox(
+                                        width: w * 0.23,
+                                        child: Text(
+                                          dayName.toUpperCase(),
+                                          style: TextStyle(
+                                            fontFamily: 'sans-serif',
+                                            fontSize: dayLabelFontSize,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1.2,
+                                            color: const Color(0xFF0F172A),
                                           ),
-                                        );
-                                      }).toList(),
-                                    ),
+                                        ),
+                                      ),
+
+                                      // Spacing
+                                      const SizedBox(width: 8),
+
+                                      // Right: Classes list
+                                      Expanded(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children: daySessions.map((session) {
+                                            final subjectDisplayName = session.subjectName.isNotEmpty
+                                                ? session.subjectName
+                                                : session.subjectCode;
+
+                                            return Padding(
+                                              padding: EdgeInsets.symmetric(vertical: h * 0.002),
+                                              child: Row(
+                                                children: [
+                                                  // Subject Name on left
+                                                  Expanded(
+                                                    child: Text(
+                                                      subjectDisplayName,
+                                                      style: TextStyle(
+                                                        fontSize: subjectFontSize,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: const Color(0xFF334155),
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  // Time slot on right
+                                                  Text(
+                                                    "${session.startTime} - ${session.endTime}",
+                                                    style: TextStyle(
+                                                      fontSize: timeFontSize,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: const Color(0xFF64748B),
+                                                    ),
+                                                    textAlign: TextAlign.right,
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
+                                );
+                              }).toList(),
+                            ),
+                          ),
                         ),
                 ),
               ],
@@ -1153,8 +1156,8 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
           final w = constraints.maxWidth;
           final isLockscreen = (h / w) >= 1.6;
 
-          // Push schedule content below phone lockscreen time & date clock widget (~26% top clearance on lockscreen)
-          final double topSpace = isLockscreen ? h * 0.260 : h * 0.040;
+          // Push schedule content below phone lockscreen time & date clock widget (~25% top clearance on lockscreen)
+          final double topSpace = isLockscreen ? h * 0.250 : h * 0.040;
           final double bottomSpace = isLockscreen ? h * 0.040 : h * 0.020;
           final double horizPadding = w * 0.04;
 
@@ -1204,9 +1207,9 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Top Header (Serif "Schedule" and uppercase subtitle)
+                // Top Header (Serif "Class Schedule" and uppercase subtitle)
                 Text(
-                  "Schedule",
+                  "Class Schedule",
                   style: TextStyle(
                     fontFamily: 'serif',
                     fontSize: titleFontSize,
@@ -1288,7 +1291,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                     ),
                                     SizedBox(height: h * 0.010),
 
-                                    // Frosted Glass Class Cards Stack (without shadow)
+                                    // Frosted Glass Class Cards Stack (reduced border radius)
                                     ...daySessions.map((session) {
                                       return Container(
                                         width: double.infinity,
@@ -1296,7 +1299,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                         padding: EdgeInsets.symmetric(vertical: h * 0.012, horizontal: 4),
                                         decoration: BoxDecoration(
                                           color: Colors.white.withValues(alpha: 0.20),
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderRadius: BorderRadius.circular(10),
                                           border: Border.all(
                                             color: Colors.white.withValues(alpha: 0.40),
                                             width: 1.2,
@@ -1361,7 +1364,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                     padding: EdgeInsets.symmetric(horizontal: w * 0.06, vertical: h * 0.009),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: Colors.white.withValues(alpha: 0.40),
                         width: 1.2,
@@ -1395,34 +1398,36 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
           final w = constraints.maxWidth;
           final isLockscreen = (h / w) >= 1.6;
 
-          final double topSpace = isLockscreen ? h * 0.075 : h * 0.035;
+          // Push schedule content below phone lockscreen time & date clock widget (~24% top clearance on lockscreen)
+          final double topSpace = isLockscreen ? h * 0.240 : h * 0.035;
           final double bottomSpace = isLockscreen ? h * 0.035 : h * 0.020;
           final double horizPadding = w * 0.07;
 
-          // Determine ambition headline based on student's course
+          // Determine ambition headline based on student's course (Title Cased)
           final courseUpper = provider.activeCourse.toUpperCase();
-          String ambitionTitle = "DOCTOR";
+          String ambitionTitle = "Doctor";
           String ambitionIcon = "🩺";
           if (courseUpper.contains("IT") || courseUpper.contains("COMPUTER") || courseUpper.contains("CS") || courseUpper.contains("SOFTWARE") || courseUpper.contains("TECH")) {
-            ambitionTitle = "IT PROFESSIONAL";
+            ambitionTitle = "IT Professional";
             ambitionIcon = "💻";
           } else if (courseUpper.contains("ENGIN")) {
-            ambitionTitle = "ENGINEER";
+            ambitionTitle = "Engineer";
             ambitionIcon = "⚙️";
           } else if (courseUpper.contains("NURS") || courseUpper.contains("MED") || courseUpper.contains("PHARM")) {
-            ambitionTitle = "DOCTOR";
+            ambitionTitle = "Doctor";
             ambitionIcon = "🩺";
           } else if (courseUpper.contains("EDUC") || courseUpper.contains("TEACH")) {
-            ambitionTitle = "EDUCATOR";
+            ambitionTitle = "Educator";
             ambitionIcon = "📚";
           } else if (courseUpper.contains("BUSIN") || courseUpper.contains("ACCOUNT") || courseUpper.contains("MANG") || courseUpper.contains("FINAN")) {
-            ambitionTitle = "ENTREPRENEUR";
+            ambitionTitle = "Entrepreneur";
             ambitionIcon = "💼";
           } else if (courseUpper.contains("CRIM") || courseUpper.contains("LAW")) {
-            ambitionTitle = "OFFICER";
+            ambitionTitle = "Officer";
             ambitionIcon = "⚖️";
           } else if (provider.activeCourse.isNotEmpty) {
-            ambitionTitle = provider.activeCourse.toUpperCase();
+            final c = provider.activeCourse.replaceAll(RegExp(r'^BS\s+|^AB\s+|^Bachelor of\s+', caseSensitive: false), '');
+            ambitionTitle = c.isNotEmpty ? c : "Professional";
             ambitionIcon = "🎓";
           }
 
@@ -1437,13 +1442,13 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
           final double timeFontSize = (h * 0.0095).clamp(6.5, 11.5);
 
           const shortDaysMap = {
-            'Monday': 'mon',
-            'Tuesday': 'tue',
-            'Wednesday': 'wed',
-            'Thursday': 'thurs',
-            'Friday': 'fri',
-            'Saturday': 'sat',
-            'Sunday': 'sun'
+            'Monday': 'Mon',
+            'Tuesday': 'Tue',
+            'Wednesday': 'Wed',
+            'Thursday': 'Thu',
+            'Friday': 'Fri',
+            'Saturday': 'Sat',
+            'Sunday': 'Sun'
           };
 
           return Container(
@@ -1473,12 +1478,12 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
-                        "WILL BE A",
+                        "Will Be A",
                         style: TextStyle(
                           fontSize: ambitionTopFontSize,
                           fontWeight: FontWeight.w700,
                           color: Colors.white.withValues(alpha: 0.9),
-                          letterSpacing: 3.0,
+                          letterSpacing: 2.0,
                         ),
                       ),
                     ),
@@ -1497,7 +1502,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                         fontSize: ambitionMainFontSize,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
-                        letterSpacing: 2.0,
+                        letterSpacing: 1.5,
                         shadows: [
                           Shadow(
                             color: Colors.black.withValues(alpha: 0.5),
@@ -1516,7 +1521,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                 ),
                 SizedBox(height: h * 0.001),
                 Text(
-                  "${provider.activeYear} ${provider.activeSection} • ${provider.activeSemester}".toLowerCase(),
+                  "${provider.activeYear} ${provider.activeSection} • ${provider.activeSemester}",
                   style: TextStyle(
                     fontFamily: 'serif',
                     fontSize: ambitionSubFontSize,
@@ -1525,7 +1530,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                     letterSpacing: 0.5,
                   ),
                 ),
-                SizedBox(height: h * 0.020),
+                SizedBox(height: h * 0.018),
 
                 // 2. Main Schedule Panel Container
                 Expanded(
@@ -1546,12 +1551,12 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Card Header with bell icon
+                        // Card Header with bell icon (Capitalized first letters)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              "class schedule",
+                              "Class Schedule",
                               style: TextStyle(
                                 fontSize: cardHeaderFontSize,
                                 fontWeight: FontWeight.bold,
@@ -1585,7 +1590,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                     children: activeDays.map((dayName) {
                                       final daySessions = sessions.where((s) => s.dayOfWeek.toLowerCase() == dayName.toLowerCase()).toList();
                                       daySessions.sort((a, b) => a.startTime.compareTo(b.startTime));
-                                      final dayShort = shortDaysMap[dayName] ?? dayName.toLowerCase();
+                                      final dayShort = shortDaysMap[dayName] ?? dayName;
 
                                       return Container(
                                         margin: EdgeInsets.only(bottom: h * 0.010),
@@ -1624,18 +1629,18 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                               child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  // Column Headers
+                                                  // Column Headers (Capitalized first letters)
                                                   Row(
                                                     children: [
                                                       Expanded(
                                                         flex: 5,
                                                         child: Text(
-                                                          "subjects",
+                                                          "Subjects",
                                                           textAlign: TextAlign.center,
                                                           style: TextStyle(
                                                             fontSize: colHeaderFontSize,
                                                             fontWeight: FontWeight.bold,
-                                                            color: Colors.white.withValues(alpha: 0.70),
+                                                            color: Colors.white.withValues(alpha: 0.85),
                                                           ),
                                                         ),
                                                       ),
@@ -1647,12 +1652,12 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
                                                       Expanded(
                                                         flex: 6,
                                                         child: Text(
-                                                          "time",
+                                                          "Time",
                                                           textAlign: TextAlign.center,
                                                           style: TextStyle(
                                                             fontSize: colHeaderFontSize,
                                                             fontWeight: FontWeight.bold,
-                                                            color: Colors.white.withValues(alpha: 0.70),
+                                                            color: Colors.white.withValues(alpha: 0.85),
                                                           ),
                                                         ),
                                                       ),
@@ -1725,7 +1730,7 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
       );
     }
 
-    // Responsive layout for non-template themes using LayoutBuilder
+    // Responsive layout for non-template themes using LayoutBuilder (Pastel Sky, Cyberpunk, etc.)
     return LayoutBuilder(
       builder: (context, constraints) {
         final h = constraints.maxHeight;
@@ -1734,8 +1739,8 @@ class _ScheduleExporterScreenState extends State<ScheduleExporterScreen> {
         // Is lockscreen ratio (tall ratio like 9:19.5 or 9:16)
         final isLockscreen = (h / w) >= 1.6;
 
-        // Proportional sizing
-        final double topSpace = isLockscreen ? h * 0.080 : h * 0.035;
+        // Proportional sizing with ample lockscreen clock clearance (~24% top clearance)
+        final double topSpace = isLockscreen ? h * 0.240 : h * 0.035;
         final double bottomSpace = isLockscreen ? h * 0.040 : h * 0.020;
         final double horizPadding = w * 0.06;
 
